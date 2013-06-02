@@ -11,3 +11,24 @@
 *.lai
 *.la
 *.a
+
+# Compiled Files
+*.run
+
+# Project Files
+*.sublime*
+
+# Temp Files
+*.tmp
+
+# Output Files
+*.tst
+*.out
+*.output
+*.data
+
+# Binary Files
+*.png
+*.jpeg
+*.doc
+*.docx
