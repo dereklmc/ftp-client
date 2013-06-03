@@ -39,11 +39,11 @@ class Context {
          * @param output - reference to external ouput stream (e.g. std::cout)
          * @param FTPClient - represents a network connection to an ftp server
          */
-        Context(std::istream &input, std::ostream &output, FTPClient *ftp=NULL);
+        Context(std::istream &input, std::ostream &output);
 
         std::istream *input;  //!< ptr to input stream of external context
         std::ostream *output;  //!< ptr to output stream of external context
-        FTPClient *ftp;  //!< ptr to ftp network connection in context
+        FTPClient ftp;  //!< ptr to ftp network connection in context
 };
 
 #endif

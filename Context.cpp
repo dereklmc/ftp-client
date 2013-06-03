@@ -20,10 +20,9 @@
  * @param output - reference to external ouput stream (e.g. std::cout)
  * @param FTPClient - represents a network connection to an ftp server
  */
-Context::Context(std::istream &input, std::ostream &output, FTPClient *ftp) :
+Context::Context(std::istream &input, std::ostream &output) :
     input(&input),
-    output(&output),
-    ftp(ftp)
+    output(&output)
 {
     // ctr
 }
