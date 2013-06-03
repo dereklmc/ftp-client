@@ -17,6 +17,8 @@
 
 # Project Files
 *.sublime*
+*.sublime-workspace
+*.sublime-project
 
 # Temp Files
 *.tmp
