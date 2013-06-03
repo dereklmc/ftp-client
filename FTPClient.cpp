@@ -4,10 +4,33 @@
 
 const int FTPClient::DEFAULT_PORT(21);
 
-FTPClient::FTPClient(std::string hostname, int port) :
-    controlSocket(hostname.c_str(), port)
+FTPClient::FTPClient()
 {
-    // ctr
+    controlSocket = NULL;
+}
+
+FTPClient::FTPClient(std::string hostname, int port)
+{
+    controlSocket = new Socket(hostname.c_str(), port);
+}
+
+FTPClient::~FTPClient()
+{
+    if (isOpen()) {
+        close()
+    }
+}
+
+bool FTPClient::isOpen() const {
+    return controlSocket != NULL;
+}
+
+bool FTPClient::open(std::string hostname, int port) {
+    if (isOpen()) {
+        return false;
+    }
+    controlSocket = new Socket(hostname.c_str(), port);
+    return true;
 }
 
 std::string FTPClient::read() {
@@ -22,4 +45,13 @@ std::string FTPClient::read() {
         rss << std::string(buf, nread);
     }
     return rss.str();
+}
+
+bool FTPClient::close() {
+    if (!isOpen()) {
+        return false;
+    }
+    delete controlSocket;
+    controlSocket = NULL;
+    return true;
 }

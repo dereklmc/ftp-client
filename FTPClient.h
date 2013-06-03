@@ -7,12 +7,17 @@
 
 class FTPClient {
     public:
+        FTPClient();
         FTPClient(std::string hostname, int port=DEFAULT_PORT);
+        ~FTPClient();
 
+        bool isOpen() const;
+        bool open(std::string hostname, int port=DEFAULT_PORT);
         std::string read();
+        void close();
 
     private:
-        Socket controlSocket;
+        Socket *controlSocket;
         static const int DEFAULT_PORT;
 };
 
