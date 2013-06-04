@@ -4,13 +4,11 @@
 
 const int FTPClient::DEFAULT_PORT(21);
 
-FTPClient::FTPClient()
-{
+FTPClient::FTPClient() {
     controlSocket = NULL;
 }
 
-FTPClient::FTPClient(std::string hostname, int port)
-{
+FTPClient::FTPClient(std::string hostname, int port) {
     controlSocket = new Socket(hostname.c_str(), port);
 }
 
