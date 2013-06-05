@@ -23,8 +23,8 @@ class OpenCmd : public Command {
 
             *context.input >> hostname >> port;
             *context.output << "Open connection to \"" << hostname << ":" << port << "\"" << std::endl;
-            context.ftp = new FTPClient(hostname, port);
-            *context.output << context.ftp->read();
+            context.ftp.open(hostname, port);
+            context.ftp.readInto(*context.output);
         }
 };
 

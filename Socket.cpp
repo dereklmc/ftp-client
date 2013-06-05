@@ -61,6 +61,26 @@ void Socket::setAsync() const {
 /**
  * TODO
  */
+void readInto(std::ostream &output) {
+    // poll this socket for 1000msec (=1sec)
+    while (controlSocket.poll(1000)) {                  // the socket is ready to read
+        char buf[1024];
+        int nread = controlSocket.read<char>(buf, 1024);    // guaranteed to return from read
+                                                            // even if nread < BUFLEN
+        output << std::string(buf, nread);
+    }
+}
+
+/**
+ * TODO
+ */
+void writeFrom(std::istream &input) {
+    // TODO
+}
+
+/**
+ * TODO
+ */
 bool Socket::poll(int timeout) {
     int numEvents = ::poll(&ufds, 1, 1000);
     return numEvents > 0;

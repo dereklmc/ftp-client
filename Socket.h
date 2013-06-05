@@ -12,7 +12,8 @@
 
 #include <netdb.h>
 #include <unistd.h>         // read, write, close
- #include <sys/poll.h>      // polling
+#include <sys/poll.h>       // polling
+#include <iostream>
 
 class Socket {
     public:
@@ -57,8 +58,17 @@ class Socket {
         template<typename T>
         void write(T *dataBuffer, const int length) const;
 
-        void shutdown();
+        /**
+         * TODO
+         */
+        void readInto(std::ostream &output);
 
+        /**
+         * TODO
+         */
+        void writeFrom(std::istream &input);
+
+        void shutdown();
 
     private:
         /** Reference to actual socket */
