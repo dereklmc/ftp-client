@@ -10,10 +10,14 @@ class FTPClient {
         FTPClient(std::string hostname, int port=DEFAULT_PORT);
 
         std::string read();
+        void write(const std::string);
+        const std::string getHostname(void) const;
+        void user(std::string);
 
     private:
         Socket controlSocket;
         static const int DEFAULT_PORT;
+        const std::string hostname;
 };
 
 #endif
