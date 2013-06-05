@@ -26,10 +26,6 @@ std::string FTPClient::read() {
     return rss.str();
 }
 
-void FTPClient::write(std::string input) {
-
-}
-
 void FTPClient::authorize(std::string input) {
      char buf[1024];
      strcpy(buf, input.c_str());

@@ -7,7 +7,9 @@
 
 class Context {
     public:
-        Context(std::istream &input, std::ostream &output, FTPClient *ftp=NULL);
+        Context(std::istream &input,
+                std::ostream &output,
+                FTPClient *ftp=NULL);
 
         std::istream *input;
         std::ostream *output;
