@@ -1,5 +1,6 @@
 #include "FTPClient.h"
-#include <stdio.h> // printf
+#include <string.h> // strcpy, strcat
+#include <stdio.h>  // printf
 
 #include <sstream>
 
@@ -29,10 +30,11 @@ void FTPClient::write(std::string input) {
 
 }
 
-void FTPClient::user(std::iostream input) {
+void FTPClient::authorize(std::string input) {
      char buf[1024];
-     std::cout << input << std::endl;
-     int nwrite = controlSocket.write<char>(input, 5+input.length()+1);    
+     strcpy(buf, input.c_str());
+     strcat(buf, "\r\n");
+     controlSocket.write<char>(buf, (int)input.length()+2);
 }
 const std::string FTPClient::getHostname(void) const {
     return hostname;

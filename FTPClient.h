@@ -12,7 +12,7 @@ class FTPClient {
         std::string read();
         void write(const std::string);
         const std::string getHostname(void) const;
-        void user(std::string);
+        void authorize(std::string);
 
     private:
         Socket controlSocket;

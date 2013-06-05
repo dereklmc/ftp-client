@@ -25,21 +25,24 @@ class OpenCmd : public Command {
             *context.output << "Open connection to \"" << hostname << ":" << port << "\"" << std::endl;
             context.ftp = new FTPClient(hostname, port);
             *context.output << context.ftp->read();
-            
-            /* authorization is not really a command and more a continuation */
+
             authorize(context);
         }
 
         void authorize(Context &context) {
             std::string netid(getlogin());
+            std::string input;
 
             *context.output << "Name ("
-                            << context.ftp->getHostname() 
+                            << context.ftp->getHostname()
                             << ":" << netid << "): ";
-            context.ftp->user(*context.input);
+            *context.input >> input;
+            context.ftp->authorize("USER " + input);
             *context.output << context.ftp->read();
-            // std::cout << "Password: ";
-            // *context.output << std::endl;
+            std::cout << "Password: ";
+            *context.input >> input;
+            context.ftp->authorize("PASS " + input);
+            *context.output << context.ftp->read();
         }
 };
 
