@@ -61,11 +61,11 @@ void Socket::setAsync() const {
 /**
  * TODO
  */
-void readInto(std::ostream &output) {
+void Socket::readInto(std::ostream &output) {
     // poll this socket for 1000msec (=1sec)
-    while (controlSocket.poll(1000)) {                  // the socket is ready to read
+    while (poll(1000)) {                  // the socket is ready to read
         char buf[1024];
-        int nread = controlSocket.read<char>(buf, 1024);    // guaranteed to return from read
+        int nread = read<char>(buf, 1024);    // guaranteed to return from read
                                                             // even if nread < BUFLEN
         output << std::string(buf, nread);
     }
@@ -74,7 +74,7 @@ void readInto(std::ostream &output) {
 /**
  * TODO
  */
-void writeFrom(std::istream &input) {
+void Socket::writeFrom(std::istream &input) {
     // TODO
 }
 

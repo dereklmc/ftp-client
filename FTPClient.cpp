@@ -16,7 +16,7 @@ FTPClient::FTPClient(std::string hostname, int port) {
 FTPClient::~FTPClient()
 {
     if (isOpen()) {
-        close()
+        close();
     }
 }
 
@@ -40,11 +40,11 @@ void FTPClient::writeFrom(std::istream &input) {
     controlSocket->writeFrom(input);
 }
 
-bool FTPClient::executePassive(PassiveVisitor *visitor) {
+Socket* FTPClient::openPassive() {
     const char *pasvCmd = "PASV\r\n";
-    controlSocket->write<char>(pasvCmd, 6);
+    controlSocket->write<const char>(pasvCmd, 6);
 
-    stringstream responseStream;
+    std::stringstream responseStream;
     controlSocket->readInto(responseStream);
 
     boost::regex responsePattern("\\d{3}[^\r\n]+ \\((\\d+),(\\d+),(\\d+),(\\d+),(\\d+),(\\d+)\\).\r\n");
@@ -52,27 +52,23 @@ bool FTPClient::executePassive(PassiveVisitor *visitor) {
     bool found = boost::regex_search(responseStream.str(), passiveMatch, responsePattern);
 
     if (!found) {
-        return false;
+        return NULL;
     }
 
-    stringstream hostStream;
-    hostStream << passiveMatch[1] << ".";
-    hostStream << passiveMatch[2] << ".";
-    hostStream << passiveMatch[3] << ".";
-    hostStream << passiveMatch[4];
+    std::string host;
+    host.append(passiveMatch[1].first, passiveMatch[1].second);
+    host.append(".");
+    host.append(passiveMatch[2].first, passiveMatch[2].second);
+    host.append(".");
+    host.append(passiveMatch[3].first, passiveMatch[3].second);
+    host.append(".");
+    host.append(passiveMatch[4].first, passiveMatch[1].second);
 
-    int port = atoi(passiveMatch[5]) * 256 + atoi(passiveMatch[6]);
+    std::string p1(passiveMatch[5].first, passiveMatch[5].second);
+    std::string p2(passiveMatch[6].first, passiveMatch[6].second);
+    int port = atoi(p1.c_str()) * 256 + atoi(p2.c_str());
 
-    Socket dataSocket(hostStream.str(), port);
-    // fork!
-    // in parent process:
-    visitor.handleControl(*this);
-    // in child process:
-    visitor.handleData(dataSocket);
-    // in parent process, join on fork
-    // Close socket
-
-    return true;
+    return new Socket(host.c_str(), port);
 }
 
 bool FTPClient::close(bool force) {
@@ -80,7 +76,7 @@ bool FTPClient::close(bool force) {
         return false;
     }
     const char *closeCmdString = "QUIT\r\n";
-    controlSocket->write<char>(closeCmdString, 6);
+    controlSocket->write<const char>(closeCmdString, 6);
 
     delete controlSocket;
     controlSocket = NULL;

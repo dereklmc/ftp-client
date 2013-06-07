@@ -8,7 +8,8 @@ CXX = g++
 
 #--------------------------------------------------------------------------------------------------
 # Build Flags
-CFLAGS = -c -g -Wall -fstack-check
+CFLAGS = -c -Wall -fstack-check
+LINKFLAGS = -g
 
 #--------------------------------------------------------------------------------------------------
 # Object Files
@@ -37,7 +38,7 @@ INTERFACES = Command.h
 # Targets
 
 ftp: $(FTPOBJS) $(COMMONOBJS) $(TEMPLATES) $(INTERFACES)
-	$(CXX) -g -o ftp.run $(FTPOBJS) $(COMMONOBJS)
+	$(CXX) $(LINKFLAGS) -o ftp.run $(FTPOBJS) $(COMMONOBJS) -lboost_regex
 
 clean:
 	rm -f *.o $(BIN)/*.o *.run
@@ -61,4 +62,4 @@ $(BIN)/Context.o: Context.cpp Context.h
 	$(CXX) $(CFLAGS) Context.cpp
 
 $(BIN)/FTPClient.o: FTPClient.cpp FTPClient.h Socket.h
-	$(CXX) $(CFLAGS) FTPClient.cpp
+	$(CXX) $(CFLAGS) FTPClient.cpp -lboost_regex
