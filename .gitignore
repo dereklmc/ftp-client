@@ -14,6 +14,7 @@
 
 # Compiled Files
 *.run
+*.h.gch
 
 # Project Files
 *.sublime*
