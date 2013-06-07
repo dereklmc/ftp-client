@@ -102,11 +102,13 @@ int main(int argc, char *argv[]) {
     std::auto_ptr<Command> quit(new QuitCmd());
     std::auto_ptr<Command> cd(new CdCmd());
     std::auto_ptr<Command> close(new CloseCmd());
+    std::auto_ptr<Command> pwd(new PWDCmd());
     CommandParser cmdParser("ftp");
     cmdParser.addCommand("open", open.get());
     cmdParser.addCommand("quit", quit.get());
     cmdParser.addCommand("cd", cd.get());
     cmdParser.addCommand("close", close.get());
+    cmdParser.addCommand("pwd", pwd.get());
 
     Context context(std::cin, std::cout);
     while (1) {
