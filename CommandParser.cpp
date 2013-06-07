@@ -15,7 +15,7 @@ bool CommandParser::addCommand(std::string name, Command *cmd) {
 
 void CommandParser::parse(Context &context) {
     std::string commandStr;
-    *context.output << shellName << "> " << std::flush;
+    *context.output << shellName << ":" << context.workingDirectory << "> " << std::flush;
     *context.input >> commandStr;
 
 

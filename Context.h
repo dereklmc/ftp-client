@@ -44,6 +44,7 @@ class Context {
         std::istream *input;  //!< ptr to input stream of external context
         std::ostream *output;  //!< ptr to output stream of external context
         FTPClient ftp;  //!< ptr to ftp network connection in context
+        std::string workingDirectory;
 };
 
 #endif

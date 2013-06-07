@@ -4,6 +4,10 @@
 #include <memory>  // For auto_ptr, which is deprecated in C++11 (gcc v4.7+)
 #include <stdlib.h>
 #include <sstream>
+
+// Boost
+#include <boost/regex.hpp>
+
 // Local
 #include "ArgParse.h"
 #include "CommandParser.h"
@@ -27,6 +31,14 @@ class OpenCmd : public Command {
             context.ftp.readInto(*context.output);
 
             authorize(context);
+
+            std::stringstream currDirStream;
+            context.ftp.pwd(currDirStream);
+            currDirStream.str();
+            boost::regex pwdPattern("\\d{3}.*\"(.*)\".*");
+            boost::smatch match;
+            boost::regex_search(currDirStream.str(), match, pwdPattern);
+            context.workingDirectory = std::string(match[1].first, match[1].second);
         }
 
         void authorize(Context &context) {
@@ -46,9 +58,26 @@ class OpenCmd : public Command {
         }
 };
 
-class QuitCmd : public Command {
+class PWDCmd : public Command {
     public:
         void execute(Context &context) {
+            context.ftp.pwd(*context.output);
+        }
+};
+
+class CloseCmd : public Command {
+    public:
+        void execute(Context &context) {
+            context.ftp.close(context.output);
+        }
+};
+
+class QuitCmd : public CloseCmd {
+    public:
+        void execute(Context &context) {
+            if (context.ftp.isOpen()) {
+                context.ftp.close(context.output);
+            }
             *context.output << "GOODBYE!" << std::endl;
             exit(0);
         }
@@ -72,10 +101,12 @@ int main(int argc, char *argv[]) {
     std::auto_ptr<Command> open(new OpenCmd());
     std::auto_ptr<Command> quit(new QuitCmd());
     std::auto_ptr<Command> cd(new CdCmd());
+    std::auto_ptr<Command> close(new CloseCmd());
     CommandParser cmdParser("ftp");
     cmdParser.addCommand("open", open.get());
     cmdParser.addCommand("quit", quit.get());
     cmdParser.addCommand("cd", cd.get());
+    cmdParser.addCommand("close", close.get());
 
     Context context(std::cin, std::cout);
     while (1) {

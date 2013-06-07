@@ -6,6 +6,7 @@
 #include <boost/regex.hpp>
 
 const int FTPClient::DEFAULT_PORT(21);
+const std::string FTPClient::END_LINE("\r\n");
 
 FTPClient::FTPClient() {
     controlSocket = NULL;
@@ -32,6 +33,7 @@ bool FTPClient::open(std::string hostname, int port) {
     if (isOpen()) {
         return false;
     }
+    this->hostname = hostname;
     controlSocket = new Socket(hostname.c_str(), port);
     return true;
 }
@@ -75,12 +77,15 @@ Socket* FTPClient::openPassive() {
     return new Socket(host.c_str(), port);
 }
 
-bool FTPClient::close(bool force) {
+bool FTPClient::close(std::ostream *output, const bool force) {
     if (!isOpen()) {
         return false;
     }
     const char *closeCmdString = "QUIT\r\n";
     controlSocket->write<const char>(closeCmdString, 6);
+    if (output != NULL) {
+        readInto(*output);
+    }
 
     delete controlSocket;
     controlSocket = NULL;
@@ -95,4 +100,13 @@ void FTPClient::authorize(std::string input) {
 }
 const std::string FTPClient::getHostname(void) const {
     return hostname;
+}
+
+void FTPClient::writeCmd(const std::string &cmd) {
+    controlSocket->write<const char>(cmd.c_str(), cmd.size());
+}
+
+void FTPClient::pwd(std::ostream &out) {
+    writeCmd("PWD" + END_LINE);
+    readInto(out);
 }

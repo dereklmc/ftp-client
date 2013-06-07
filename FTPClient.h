@@ -18,15 +18,18 @@ class FTPClient {
         bool open(std::string hostname, int port=DEFAULT_PORT);
         void readInto(std::ostream &output);
         void writeFrom(std::istream &input);
+        void writeCmd(const std::string &cmd);
         Socket* openPassive();
-        bool close(bool force=false);
+        bool close(std::ostream *output = NULL, const bool force=false);
 
         const std::string getHostname(void) const;
         void authorize(std::string);
+        void pwd(std::ostream &out);
 
     private:
         Socket *controlSocket;
         static const int DEFAULT_PORT;
+        static const std::string END_LINE;
         std::string hostname;
 };
 

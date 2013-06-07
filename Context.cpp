@@ -22,7 +22,8 @@
  */
 Context::Context(std::istream &input, std::ostream &output) :
     input(&input),
-    output(&output)
+    output(&output),
+    workingDirectory("")
 {
     // ctr
 }

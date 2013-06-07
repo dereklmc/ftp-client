@@ -38,10 +38,6 @@ Socket::Socket(const char *ip_address, const int port) :
         std::cerr << "Could not connect socket!" << std::endl;
         exit(1);
     }
-
-    ufds.fd = sockDescriptor;                     // a socket descriptor to exmaine for read
-    ufds.events = POLLIN;             // check if this sd is ready to read
-    ufds.revents = 0;                 // simply zero-initialized
 }
 
 /** DTR. Closes Socket. */
@@ -63,10 +59,13 @@ void Socket::setAsync() const {
  */
 void Socket::readInto(std::ostream &output) {
     // poll this socket for 1000msec (=1sec)
+    char buf[1024];
+    int nread;
     while (poll(1000)) {                  // the socket is ready to read
-        char buf[1024];
-        int nread = read<char>(buf, 1024);    // guaranteed to return from read
-                                                            // even if nread < BUFLEN
+        nread = read<char>(buf, 1024);    // guaranteed to return from read
+        if (nread == 0) {
+            break;
+        }                                                    // even if nread < BUFLEN
         output << std::string(buf, nread);
     }
 }
@@ -82,8 +81,13 @@ void Socket::writeFrom(std::istream &input) {
  * TODO
  */
 bool Socket::poll(int timeout) {
+    struct pollfd ufds;
+    ufds.fd = sockDescriptor;         // a socket descriptor to exmaine for read
+    ufds.events = POLLIN;             // check if this sd is ready to read
+    ufds.revents = 0;                 // simply zero-initialized
+
     int numEvents = ::poll(&ufds, 1, 1000);
-    return numEvents > 0;
+    return ufds.revents & POLLIN && numEvents > 0;
 }
 
 void Socket::shutdown() {

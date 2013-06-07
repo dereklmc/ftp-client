@@ -73,7 +73,6 @@ class Socket {
     private:
         /** Reference to actual socket */
         const int sockDescriptor;
-        struct pollfd ufds;
 
         /** Closes socket. Only call if necessary to close socket before destruction of Socket. */
         void close();
