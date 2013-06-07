@@ -4,6 +4,7 @@
 #include <boost/regex.hpp>
 #include "Socket.h"
 #include <sstream>  // istringstream, ostringstream
+#include <sys/types.h>
 
 const int FTPClient::DEFAULT_PORT(21);
 const std::string FTPClient::END_LINE("\r\n");
@@ -30,7 +31,7 @@ bool FTPClient::isOpen() const {
 }
 
 bool FTPClient::open(std::string hostname, int port) {
-    if (isOpen()) { 
+    if (isOpen()) {
         return false;
     }
     this->hostname = hostname;
@@ -114,10 +115,17 @@ void FTPClient::list(const std::string ftpReply) {
     parse(ftpReply, host, port);
     dataSocket = new Socket(host.c_str(), port);
 
-    /* Send directory list to data port */
-    char list[7] = "list\r\n";
-    controlSocket->write<char>(list,6);
+    pid_t pid = fork();
+    if (pid == 0) childProc();
 
+    if (pid < 0) {  // failed
+
+    }
+    /* Send directory list to data port */
+    if (pid > 0) {  // parent
+        char list[7] = "list\r\n";
+        controlSocket->write<char>(list,6);
+    }
 }
 
 const std::string FTPClient::getHostname(void) const {
@@ -146,7 +154,7 @@ void FTPClient::parse(std::string ftpReply, std::string &host, int &port) const 
     last  = ftpReply.find_last_of(')');
     ftpReply  = ftpReply.substr(first,last-first);
 
-    /* Replace all commas */    
+    /* Replace all commas */
     for (int i = 0; i < 3; i++)
         ftpReply.replace(ftpReply.find_first_of(','),1,".");
     for (int i = 0; i < 2; i++)
@@ -157,4 +165,8 @@ void FTPClient::parse(std::string ftpReply, std::string &host, int &port) const 
     /* Find port number */
     for (int i = 0; i < 2; i++) parser >> ports[i];
     port = ports[0]*MULT+ports[1];
+}
+
+void FTPClient::childProc(void) {
+
 }

@@ -35,6 +35,7 @@ class FTPClient {
         static const std::string END_LINE;
         std::string hostname;
         void parse(std::string, std::string&, int&) const;
+        void childProc(void);
 };
 
 #endif
