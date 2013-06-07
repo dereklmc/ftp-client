@@ -61,6 +61,17 @@ public:
     }
 };
 
+class LsCmd : public Command {
+public:
+    void execute(Context &context) {
+        context.ftp->pasv();
+        std::string ftpReply = context.ftp->read();
+        *context.output << ftpReply;
+        context.ftp->list(ftpReply);
+        *context.output << context.ftp->read();
+    }
+};
+
 int main(int argc, char *argv[]) {
 
     ArgParse argparser;
@@ -72,10 +83,12 @@ int main(int argc, char *argv[]) {
     std::auto_ptr<Command> open(new OpenCmd());
     std::auto_ptr<Command> quit(new QuitCmd());
     std::auto_ptr<Command> cd(new CdCmd());
+    std::auto_ptr<Command> ls(new LsCmd());
     CommandParser cmdParser("ftp");
     cmdParser.addCommand("open", open.get());
     cmdParser.addCommand("quit", quit.get());
     cmdParser.addCommand("cd", cd.get());
+    cmdParser.addCommand("ls", ls.get());
 
     Context context(std::cin, std::cout);
     while (1) {
