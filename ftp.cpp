@@ -3,7 +3,7 @@
 #include <map>
 #include <memory>  // For auto_ptr, which is deprecated in C++11 (gcc v4.7+)
 #include <stdlib.h>
-
+#include <sstream>
 // Local
 #include "ArgParse.h"
 #include "CommandParser.h"
@@ -25,6 +25,24 @@ class OpenCmd : public Command {
             *context.output << "Open connection to \"" << hostname << ":" << port << "\"" << std::endl;
             context.ftp.open(hostname, port);
             context.ftp.readInto(*context.output);
+
+            authorize(context);
+        }
+
+        void authorize(Context &context) {
+            std::string netid(getlogin());
+            std::string input;
+
+            *context.output << "Name ("
+                            << context.ftp.getHostname()
+                            << ":" << netid << "): ";
+            *context.input >> input;
+            context.ftp.authorize("USER " + input);
+            context.ftp.readInto(*context.output);
+            std::cout << "Password: ";
+            *context.input >> input;
+            context.ftp.authorize("PASS " + input);
+            context.ftp.readInto(*context.output);
         }
 };
 
@@ -34,6 +52,13 @@ class QuitCmd : public Command {
             *context.output << "GOODBYE!" << std::endl;
             exit(0);
         }
+};
+
+class CdCmd : public Command {
+public:
+    void execute(Context &context) {
+        std::string project;
+    }
 };
 
 int main(int argc, char *argv[]) {
@@ -46,9 +71,11 @@ int main(int argc, char *argv[]) {
 
     std::auto_ptr<Command> open(new OpenCmd());
     std::auto_ptr<Command> quit(new QuitCmd());
+    std::auto_ptr<Command> cd(new CdCmd());
     CommandParser cmdParser("ftp");
     cmdParser.addCommand("open", open.get());
     cmdParser.addCommand("quit", quit.get());
+    cmdParser.addCommand("cd", cd.get());
 
     Context context(std::cin, std::cout);
     while (1) {
@@ -56,3 +83,5 @@ int main(int argc, char *argv[]) {
     }
 
 }
+
+// open ftp.tripod.com 21

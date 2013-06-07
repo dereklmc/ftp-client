@@ -1,15 +1,19 @@
 #include "FTPClient.h"
+#include <string.h> // strcpy, strcat
+#include <stdio.h>  // printf
 
 #include <sstream>
 #include <boost/regex.hpp>
 
 const int FTPClient::DEFAULT_PORT(21);
 
-FTPClient::FTPClient(){
+FTPClient::FTPClient() {
     controlSocket = NULL;
 }
 
-FTPClient::FTPClient(std::string hostname, int port) {
+FTPClient::FTPClient(std::string hostname, int port) :
+    hostname(hostname)
+{
     controlSocket = new Socket(hostname.c_str(), port);
 }
 
@@ -81,4 +85,14 @@ bool FTPClient::close(bool force) {
     delete controlSocket;
     controlSocket = NULL;
     return true;
+}
+
+void FTPClient::authorize(std::string input) {
+     char buf[1024];
+     strcpy(buf, input.c_str());
+     strcat(buf, "\r\n");
+     controlSocket->write<char>(buf, (int)input.length()+2);
+}
+const std::string FTPClient::getHostname(void) const {
+    return hostname;
 }

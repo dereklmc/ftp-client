@@ -21,9 +21,13 @@ class FTPClient {
         Socket* openPassive();
         bool close(bool force=false);
 
+        const std::string getHostname(void) const;
+        void authorize(std::string);
+
     private:
         Socket *controlSocket;
         static const int DEFAULT_PORT;
+        std::string hostname;
 };
 
 #endif
