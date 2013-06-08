@@ -17,6 +17,8 @@
 #include <stdlib.h>
 #include <cstring>
 
+const int Socket::BUF_SIZE(8192);
+
 /**
  * Creates an open connection to an open resources.
  *
@@ -59,10 +61,10 @@ void Socket::setAsync() const {
  */
 void Socket::readInto(std::ostream &output) {
     // poll this socket for 1000msec (=1sec)
-    char buf[1024];
+    char buf[Socket::BUF_SIZE];
     int nread;
     while (poll(1000)) {                  // the socket is ready to read
-        nread = read<char>(buf, 1024);    // guaranteed to return from read
+        nread = read<char>(buf, Socket::BUF_SIZE-1);    // guaranteed to return from read
         if (nread == 0) {
             break;
         }                                                    // even if nread < BUFLEN

@@ -26,10 +26,11 @@ class FTPClient {
         void authorize(std::string);
         void pwd(std::ostream &out);
 
+        static const std::string END_LINE;
+
     private:
         Socket *controlSocket;
         static const int DEFAULT_PORT;
-        static const std::string END_LINE;
         std::string hostname;
 };
 

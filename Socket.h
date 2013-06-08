@@ -78,6 +78,8 @@ class Socket {
         void close();
 
         void createAddress(const char *ip_address, const int port, sockaddr_in &address);
+
+        static const int BUF_SIZE;
 };
 
 /**

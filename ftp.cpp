@@ -86,7 +86,24 @@ class QuitCmd : public CloseCmd {
 class CdCmd : public Command {
 public:
     void execute(Context &context) {
-        std::string project;
+        std::string directory;
+        *context.output << directory;
+        context.ftp.writeCmd("CWD " + directory + FTPClient::END_LINE);
+
+        std::stringstream cdResponseStream;
+        context.ftp.readInto(cdResponseStream);
+        std::string cdResponse = cdResponseStream.str();
+        *context.output << cdResponse;
+
+        int responseCode;
+        cdResponseStream >> responseCode;
+
+        if (responseCode == 227) {
+            boost::regex pattern(".*['\"](.*)['\"].*");
+            boost::smatch match;
+            boost::regex_search(cdResponse, match, pattern);
+            context.workingDirectory = std::string(match[2].first, match[2].second);
+        }
     }
 };
 
