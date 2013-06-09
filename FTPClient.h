@@ -23,8 +23,8 @@ class FTPClient {
         bool close(std::ostream *output = NULL, const bool force=false);
         void authorize(std::string) const;
         void list(void) const;
-        void store(void);
-        void retrieve(void);
+        void store(std::ostream);
+        void retrieve(std::ostream);
         void pwd(std::ostream &out);
         const std::string getHostname(void) const;
 

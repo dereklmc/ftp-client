@@ -103,11 +103,11 @@ void FTPClient::list(void) const {
     controlSocket->write<char>(list,6);
 }
 
-void FTPClient::store(void) {
+void FTPClient::store(std::ostream &out) {
 
 }
 
-void FTPClient::retrieve(void) {
+void FTPClient::retrieve(std::ostream &out) {
 
 }
 

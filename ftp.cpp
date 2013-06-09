@@ -156,7 +156,7 @@ public:
 class GetCmd : public Command {
 public:
     void execute(Context &context) {
-        Socket *dataSocket = context.ftp.openPassive();  // FTP server PASV command
+        Socket *dataSocket = context.ftp.openPassive();  // send PASV command
         if (dataSocket != NULL) {
             context.ftp.readInto(*context.output);  // get reply from socket
 
@@ -165,10 +165,10 @@ public:
             /* Block on read() */
             if (pid == 0) dataSocket->readInto(*context.output);  // child proc
 
-            /* Send directory list to data port */
-            if (pid > 0) context.ftp.retrieve();                      // parent
+            /*  */
+            else if (pid > 0) context.ftp.retrieve();             // parent
 
-            if (pid < 0) {                                        // failed
+            else if (pid < 0) {                                   // failed
                 std::ostringstream error("Process failed to fork");
                 dataSocket->readInto(error);
             }
@@ -192,8 +192,8 @@ public:
             /* Block on read() */
             if (pid == 0) dataSocket->readInto(*context.output);  // child proc
 
-            /* Send directory list to data port */
-            if (pid > 0) context.ftp.store();                      // parent
+            /*  */
+            if (pid > 0) context.ftp.store(*context.output);      // parent
 
             if (pid < 0) {                                        // failed
                 std::ostringstream error("Process failed to fork");
