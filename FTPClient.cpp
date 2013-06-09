@@ -98,20 +98,17 @@ void FTPClient::authorize(std::string input) const {
     controlSocket->write<char>(buf, (int)input.length()+2);
 }
 
-void FTPClient::list(void) {
-    using namespace std;
+void FTPClient::list(void) const {
+    char list[7] = "list\r\n";
+    controlSocket->write<char>(list,6);
+}
 
-    pid_t pid = fork();
-    if (pid == 0) childProc();
+void FTPClient::store(void) {
 
-    if (pid < 0) {  // failed
+}
 
-    }
-    /* Send directory list to data port */
-    if (pid > 0) {  // parent
-        char list[7] = "list\r\n";
-        controlSocket->write<char>(list,6);
-    }
+void FTPClient::retrieve(void) {
+
 }
 
 const std::string FTPClient::getHostname(void) const {
@@ -151,8 +148,4 @@ void FTPClient::parse(std::string ftpReply, std::string &host, int &port) const 
     /* Find port number */
     for (int i = 0; i < 2; i++) parser >> ports[i];
     port = ports[0]*MULT+ports[1];
-}
-
-void FTPClient::childProc(void) {
-
 }

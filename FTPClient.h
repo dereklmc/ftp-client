@@ -21,11 +21,12 @@ class FTPClient {
         void writeCmd(const std::string &cmd);
         Socket* openPassive();
         bool close(std::ostream *output = NULL, const bool force=false);
-        void list(void);
         void authorize(std::string) const;
-
-        const std::string getHostname(void) const;
+        void list(void) const;
+        void store(void);
+        void retrieve(void);
         void pwd(std::ostream &out);
+        const std::string getHostname(void) const;
 
         static const std::string END_LINE;
 
@@ -35,7 +36,6 @@ class FTPClient {
         static const int DEFAULT_PORT;
         std::string hostname;
         void parse(std::string, std::string&, int&) const;
-        void childProc(void);
 };
 
 #endif

@@ -153,6 +153,60 @@ public:
     }
 };
 
+class GetCmd : public Command {
+public:
+    void execute(Context &context) {
+        Socket *dataSocket = context.ftp.openPassive();  // FTP server PASV command
+        if (dataSocket != NULL) {
+            context.ftp.readInto(*context.output);  // get reply from socket
+
+            pid_t pid = fork();
+
+            /* Block on read() */
+            if (pid == 0) dataSocket->readInto(*context.output);  // child proc
+
+            /* Send directory list to data port */
+            if (pid > 0) context.ftp.retrieve();                      // parent
+
+            if (pid < 0) {                                        // failed
+                std::ostringstream error("Process failed to fork");
+                dataSocket->readInto(error);
+            }
+            delete dataSocket;
+            dataSocket = NULL;
+        } else {
+            *context.output << "Could not establish data connection." << std::endl;
+        }
+    }
+};
+
+class PutCmd : public Command {
+public:
+    void execute(Context &context) {
+        Socket *dataSocket = context.ftp.openPassive();  // FTP server PASV command
+        if (dataSocket != NULL) {
+            context.ftp.readInto(*context.output);  // get reply from socket
+
+            pid_t pid = fork();
+
+            /* Block on read() */
+            if (pid == 0) dataSocket->readInto(*context.output);  // child proc
+
+            /* Send directory list to data port */
+            if (pid > 0) context.ftp.store();                      // parent
+
+            if (pid < 0) {                                        // failed
+                std::ostringstream error("Process failed to fork");
+                dataSocket->readInto(error);
+            }
+            delete dataSocket;
+            dataSocket = NULL;
+        } else {
+            *context.output << "Could not establish data connection." << std::endl;
+        }
+    }
+};
+
 int main(int argc, char *argv[]) {
 
     ArgParse argparser;
@@ -166,6 +220,8 @@ int main(int argc, char *argv[]) {
     std::auto_ptr<Command> cd(new CdCmd());
     std::auto_ptr<Command> close(new CloseCmd());
     std::auto_ptr<Command> ls(new LsCmd());
+    std::auto_ptr<Command> get(new GetCmd());
+    std::auto_ptr<Command> put(new PutCmd());
     std::auto_ptr<Command> pwd(new PWDCmd());
     std::auto_ptr<Command> mkdir(new MkdirCmd());
     CommandParser cmdParser("ftp");
@@ -174,6 +230,8 @@ int main(int argc, char *argv[]) {
     cmdParser.addCommand("cd", cd.get());
     cmdParser.addCommand("close", close.get());
     cmdParser.addCommand("ls", ls.get());
+    cmdParser.addCommand("get", get.get());
+    cmdParser.addCommand("put", put.get());
     cmdParser.addCommand("pwd", pwd.get());
     cmdParser.addCommand("mkdir", mkdir.get());
 
