@@ -129,24 +129,29 @@ public:
 class LsCmd : public Command {
 public:
     void execute(Context &context) {
-        Socket *dataSocket = context.ftp.openPassive();  // FTP server PASV command
+        Socket *dataSocket = context.ftp.openPassive(*context.output);  // FTP server PASV command
         if (dataSocket != NULL) {
-            context.ftp.readInto(*context.output);  // get reply from socket
 
             pid_t pid = fork();
 
             /* Block on read() */
             if (pid == 0) {         // child proc
                 dataSocket->readInto(*context.output);
+                delete dataSocket;
+                dataSocket = NULL;
                 exit(0);
             }
             /* Send directory list to data port */
             else if (pid > 0) {     // parent
                 context.ftp.writeCmd("LIST" + FTPClient::END_LINE);
+                context.ftp.readInto(*context.output);
             }
             else if (pid < 0) {     // failed
                 std::ostringstream error("Process failed to fork");
                 dataSocket->readInto(error);
+                delete dataSocket;
+                dataSocket = NULL;
+                exit(1);
             }
             delete dataSocket;
             dataSocket = NULL;
@@ -162,7 +167,7 @@ public:
         std::string file;
         *context.input >> file;
 
-        Socket *dataSocket = context.ftp.openPassive();  // send PASV command
+        Socket *dataSocket = context.ftp.openPassive(*context.output);  // send PASV command
 
         if (dataSocket != NULL) {
             context.ftp.readInto(*context.output);  // get reply from socket
@@ -172,7 +177,6 @@ public:
             /* Block on read() */
             if (pid == 0) {                                       // child proc
                 dataSocket->readInto(*context.output);
-                context.ftp.close();
             }
             /*  */
             else if (pid > 0) {                                   // parent
@@ -195,27 +199,6 @@ public:
 class PutCmd : public Command {
 public:
     void execute(Context &context) {
-        Socket *dataSocket = context.ftp.openPassive();  // FTP server PASV command
-        if (dataSocket != NULL) {
-            context.ftp.readInto(*context.output);  // get reply from socket
-
-            pid_t pid = fork();
-
-            /* Block on read() */
-            if (pid == 0) dataSocket->readInto(*context.output);  // child proc
-
-            /*  */
-            if (pid > 0) context.ftp.store(" ");      // parent
-
-            if (pid < 0) {                                        // failed
-                std::ostringstream error("Process failed to fork");
-                dataSocket->readInto(error);
-            }
-            delete dataSocket;
-            dataSocket = NULL;
-        } else {
-            *context.output << "Could not establish data connection." << std::endl;
-        }
     }
 };
 

@@ -47,12 +47,14 @@ void FTPClient::writeFrom(std::istream &input) {
     controlSocket->writeFrom(input);
 }
 
-Socket* FTPClient::openPassive() {
+Socket* FTPClient::openPassive(std::ostream &output) {
     const char *pasvCmd = "PASV\r\n";
     controlSocket->write<const char>(pasvCmd, 6);
 
     std::stringstream responseStream;
     controlSocket->readInto(responseStream);
+    output << responseStream.str();
+
     int code = 0;
     int host1, host2, host3, host4, port1, port2;
 

@@ -19,7 +19,7 @@ class FTPClient {
         void readInto(std::ostream &output);
         void writeFrom(std::istream &input);
         void writeCmd(const std::string &cmd);
-        Socket* openPassive();
+        Socket* openPassive(std::ostream &output);
         bool close(std::ostream *output = NULL, const bool force=false);
         void authorize(std::string) const;
         // void list(void) const;
