@@ -15,6 +15,8 @@
 #include "Context.h"
 #include "FTPClient.h"
 
+#define DEBUG
+
 // Declarations
 
 // Definitions
@@ -24,8 +26,13 @@ class OpenCmd : public Command {
         void execute(Context &context) {
             std::string hostname;
             int port;
-
+            #ifdef DEBUG
+            hostname = "ftp.tripod.com";
+            port = 21;
+            #endif
+            #ifndef DEBUG
             *context.input >> hostname >> port;
+            #endif
             *context.output << "Open connection to \"" << hostname << ":" << port << "\"" << std::endl;
             context.ftp.open(hostname, port);
             context.ftp.readInto(*context.output);
@@ -46,11 +53,21 @@ class OpenCmd : public Command {
             *context.output << "Name ("
                             << context.ftp.getHostname()
                             << ":" << netid << "): ";
+            #ifdef DEBUG
+            input = "css432";
+            #endif
+            #ifndef DEBUG
             *context.input >> input;
+            #endif
             context.ftp.authorize("USER " + input);
             context.ftp.readInto(*context.output);
             std::cout << "Password: ";
+            #ifdef DEBUG
+            input = "UWB0th3ll";
+            #endif
+            #ifndef DEBUG
             *context.input >> input;
+            #endif
             context.ftp.authorize("PASS " + input);
             context.ftp.readInto(*context.output);
         }

@@ -98,11 +98,6 @@ void FTPClient::authorize(std::string input) const {
     controlSocket->write<char>(buf, (int)input.length()+2);
 }
 
-void FTPClient::pasv(void) const {
-    char pasv[7] = "pasv\r\n";
-    controlSocket->write<char>(pasv,6);
-}
-
 void FTPClient::list(const std::string ftpReply) {
     using namespace std;
 
