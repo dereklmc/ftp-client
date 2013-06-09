@@ -98,15 +98,8 @@ void FTPClient::authorize(std::string input) const {
     controlSocket->write<char>(buf, (int)input.length()+2);
 }
 
-void FTPClient::list(const std::string ftpReply) {
+void FTPClient::list(void) {
     using namespace std;
-
-    string host;
-    int port;
-
-    /* Parse FTP reply and connect to data port */
-    parse(ftpReply, host, port);
-    dataSocket = new Socket(host.c_str(), port);
 
     pid_t pid = fork();
     if (pid == 0) childProc();
