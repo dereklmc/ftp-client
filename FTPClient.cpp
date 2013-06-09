@@ -98,20 +98,13 @@ void FTPClient::authorize(std::string input) const {
     controlSocket->write<char>(buf, (int)input.length()+2);
 }
 
-void FTPClient::list(void) const {
-    const char *listCmdStr = "list\r\n";
-    controlSocket->write<const char>(listCmdStr,6);
-}
-
-void FTPClient::store(std::ostream &out) {
+void FTPClient::store(const std::string &input) {
 
 }
 
-void FTPClient::retrieve(std::ostream &out) {
-    const char *typeCmdStr = "type I\r\n";
-    const char *retrCmdStr = "retr "+out.str()+"\r\n";
-    controlSocket->write<const char>(typeCmdStr,6);
-    controlSocket->write<const char>(retrCmdStr,6);
+void FTPClient::retrieve(const std::string &input) {
+    std::string retrCmdStr = "retr " + input + "\r\n";
+    controlSocket->write<const char>(retrCmdStr.c_str(),retrCmdStr.size());
 }
 
 const std::string FTPClient::getHostname(void) const {
