@@ -2,5 +2,7 @@ open ftp.tripod.com 21
 css432
 UWB0th3ll
 pwd
+ls
 close
 quit
+

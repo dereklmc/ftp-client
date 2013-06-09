@@ -34,11 +34,9 @@ class OpenCmd : public Command {
 
             std::stringstream currDirStream;
             context.ftp.pwd(currDirStream);
-            currDirStream.str();
-            boost::regex pwdPattern("\\d{3}.*\"(.*)\".*");
-            boost::smatch match;
-            boost::regex_search(currDirStream.str(), match, pwdPattern);
-            context.workingDirectory = std::string(match[1].first, match[1].second);
+            int pwd_code;
+            currDirStream >> pwd_code;
+            currDirStream >> context.workingDirectory;
         }
 
         void authorize(Context &context) {
@@ -72,7 +70,7 @@ class CloseCmd : public Command {
         }
 };
 
-class QuitCmd : public CloseCmd {
+class QuitCmd : public Command {
     public:
         void execute(Context &context) {
             if (context.ftp.isOpen()) {
@@ -83,22 +81,48 @@ class QuitCmd : public CloseCmd {
         }
 };
 
+class MkdirCmd : public Command {
+    public:
+        void execute(Context &context) {
+            if (context.ftp.isOpen()) {
+                std::string dir;
+                *context.input >> dir;
+                context.ftp.writeCmd("MKD " + dir + FTPClient::END_LINE);
+            }
+        }
+};
+
 class CdCmd : public Command {
 public:
     void execute(Context &context) {
-        std::string project;
+        std::string directory;
+        *context.input >> directory;
+        context.ftp.writeCmd("CWD " + directory + FTPClient::END_LINE);
+
+        context.ftp.readInto(*context.output);
+
+        std::stringstream currDirStream;
+        context.ftp.pwd(currDirStream);
+        int pwd_code;
+        currDirStream >> pwd_code;
+        currDirStream >> context.workingDirectory;
     }
 };
 
 class LsCmd : public Command {
 public:
     void execute(Context &context) {
-        context.ftp.pasv();                     // FTP server PASV command
-        std::stringstream ftpReply;             // storage for reply
-        context.ftp.readInto(ftpReply);         // get reply from socket
-        *context.output << ftpReply.str();      // output reply to terminal
-        context.ftp.list(ftpReply.str());       // FTP server LIST command
-        context.ftp.readInto(*context.output);  // output reply to terminal
+        Socket *dataSocket = context.ftp.openPassive();                     // FTP server PASV command
+        if (dataSocket != NULL) {
+            context.ftp.readInto(*context.output);         // get reply from socket
+            context.ftp.list("TODO: remove str");       // FTP server LIST command
+            dataSocket->readInto(*context.output);
+
+            delete dataSocket;
+            dataSocket = NULL;
+        } else {
+            *context.output << "Could not establish data connection." << std::endl;
+        }
     }
 };
 
@@ -116,6 +140,7 @@ int main(int argc, char *argv[]) {
     std::auto_ptr<Command> close(new CloseCmd());
     std::auto_ptr<Command> ls(new LsCmd());
     std::auto_ptr<Command> pwd(new PWDCmd());
+    std::auto_ptr<Command> mkdir(new MkdirCmd());
     CommandParser cmdParser("ftp");
     cmdParser.addCommand("open", open.get());
     cmdParser.addCommand("quit", quit.get());
@@ -123,6 +148,7 @@ int main(int argc, char *argv[]) {
     cmdParser.addCommand("close", close.get());
     cmdParser.addCommand("ls", ls.get());
     cmdParser.addCommand("pwd", pwd.get());
+    cmdParser.addCommand("mkdir", mkdir.get());
 
     Context context(std::cin, std::cout);
     while (1) {

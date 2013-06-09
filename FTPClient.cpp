@@ -53,27 +53,25 @@ Socket* FTPClient::openPassive() {
 
     std::stringstream responseStream;
     controlSocket->readInto(responseStream);
+    int code = 0;
+    int host1, host2, host3, host4, port1, port2;
 
-    boost::regex responsePattern("\\d{3}[^\r\n]+ \\((\\d+),(\\d+),(\\d+),(\\d+),(\\d+),(\\d+)\\).\r\n");
-    boost::smatch passiveMatch;
-    bool found = boost::regex_search(responseStream.str(), passiveMatch, responsePattern);
-
-    if (!found) {
+    responseStream >> code;
+    if (code != 227) {
         return NULL;
     }
+    responseStream.ignore(200,'(');
+    responseStream >> host1; responseStream.ignore();
+    responseStream >> host2; responseStream.ignore();
+    responseStream >> host3; responseStream.ignore();
+    responseStream >> host4; responseStream.ignore();
+    std::stringstream hostStream;
+    hostStream << host1 << "." << host2 << "." << host3 << "." << host4;
+    std::string host = hostStream.str();
 
-    std::string host;
-    host.append(passiveMatch[1].first, passiveMatch[1].second);
-    host.append(".");
-    host.append(passiveMatch[2].first, passiveMatch[2].second);
-    host.append(".");
-    host.append(passiveMatch[3].first, passiveMatch[3].second);
-    host.append(".");
-    host.append(passiveMatch[4].first, passiveMatch[1].second);
-
-    std::string p1(passiveMatch[5].first, passiveMatch[5].second);
-    std::string p2(passiveMatch[6].first, passiveMatch[6].second);
-    int port = atoi(p1.c_str()) * 256 + atoi(p2.c_str());
+    responseStream >> port1; responseStream.ignore();
+    responseStream >> port2;
+    int port = port1 * 256 + port2;
 
     return new Socket(host.c_str(), port);
 }
