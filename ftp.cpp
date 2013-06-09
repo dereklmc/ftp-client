@@ -145,6 +145,8 @@ public:
             else if (pid > 0) {     // parent
                 context.ftp.writeCmd("LIST" + FTPClient::END_LINE);
                 context.ftp.readInto(*context.output);
+                delete dataSocket;
+                dataSocket = NULL;
             }
             else if (pid < 0) {     // failed
                 std::ostringstream error("Process failed to fork");
@@ -153,8 +155,6 @@ public:
                 dataSocket = NULL;
                 exit(1);
             }
-            delete dataSocket;
-            dataSocket = NULL;
         } else {
             *context.output << "Could not establish data connection." << std::endl;
         }
@@ -170,26 +170,31 @@ public:
         Socket *dataSocket = context.ftp.openPassive(*context.output);  // send PASV command
 
         if (dataSocket != NULL) {
-            context.ftp.readInto(*context.output);  // get reply from socket
 
             pid_t pid = fork();
 
             /* Block on read() */
             if (pid == 0) {                                       // child proc
                 dataSocket->readInto(*context.output);
+                delete dataSocket;
+                dataSocket = NULL;
+                exit(0);
             }
             /*  */
             else if (pid > 0) {                                   // parent
                 context.ftp.writeCmd("TYPE I" + FTPClient::END_LINE);
                 context.ftp.writeCmd("RETR " + file + FTPClient::END_LINE);
                 context.ftp.readInto(*context.output);  // get reply
+                delete dataSocket;
+                dataSocket = NULL;
             }
             else if (pid < 0) {                                   // failed
                 std::ostringstream error("Process failed to fork");
                 dataSocket->readInto(error);
+                delete dataSocket;
+                dataSocket = NULL;
+                exit(1);
             }
-            delete dataSocket;
-            dataSocket = NULL;
         } else {
             *context.output << "Could not establish data connection." << std::endl;
         }
