@@ -30,7 +30,7 @@ bool FTPClient::isOpen() const {
 }
 
 bool FTPClient::open(std::string hostname, int port) {
-    if (isOpen()) { 
+    if (isOpen()) {
         return false;
     }
     this->hostname = hostname;
@@ -52,27 +52,25 @@ Socket* FTPClient::openPassive() {
 
     std::stringstream responseStream;
     controlSocket->readInto(responseStream);
+    int code = 0;
+    int host1, host2, host3, host4, port1, port2;
 
-    boost::regex responsePattern("\\d{3}[^\r\n]+ \\((\\d+),(\\d+),(\\d+),(\\d+),(\\d+),(\\d+)\\).\r\n");
-    boost::smatch passiveMatch;
-    bool found = boost::regex_search(responseStream.str(), passiveMatch, responsePattern);
-
-    if (!found) {
+    responseStream >> code;
+    if (code != 227) {
         return NULL;
     }
+    responseStream.ignore(200,'(');
+    responseStream >> host1; responseStream.ignore();
+    responseStream >> host2; responseStream.ignore();
+    responseStream >> host3; responseStream.ignore();
+    responseStream >> host4; responseStream.ignore();
+    std::stringstream hostStream;
+    hostStream << host1 << "." << host2 << "." << host3 << "." << host4;
+    std::string host = hostStream.str();
 
-    std::string host;
-    host.append(passiveMatch[1].first, passiveMatch[1].second);
-    host.append(".");
-    host.append(passiveMatch[2].first, passiveMatch[2].second);
-    host.append(".");
-    host.append(passiveMatch[3].first, passiveMatch[3].second);
-    host.append(".");
-    host.append(passiveMatch[4].first, passiveMatch[1].second);
-
-    std::string p1(passiveMatch[5].first, passiveMatch[5].second);
-    std::string p2(passiveMatch[6].first, passiveMatch[6].second);
-    int port = atoi(p1.c_str()) * 256 + atoi(p2.c_str());
+    responseStream >> port1; responseStream.ignore();
+    responseStream >> port2;
+    int port = port1 * 256 + port2;
 
     return new Socket(host.c_str(), port);
 }
@@ -99,22 +97,7 @@ void FTPClient::authorize(std::string input) const {
     controlSocket->write<char>(buf, (int)input.length()+2);
 }
 
-void FTPClient::pasv(void) const {
-    char pasv[7] = "pasv\r\n";
-    controlSocket->write<char>(pasv,6);
-}
-
-void FTPClient::list(const std::string ftpReply) {
-    using namespace std;
-
-    string host;
-    int port;
-
-    /* Parse FTP reply and connect to data port */
-    parse(ftpReply, host, port);
-    dataSocket = new Socket(host.c_str(), port);
-
-    /* Send directory list to data port */
+void FTPClient::list() {
     char list[7] = "list\r\n";
     controlSocket->write<char>(list,6);
 
@@ -131,30 +114,4 @@ void FTPClient::writeCmd(const std::string &cmd) {
 void FTPClient::pwd(std::ostream &out) {
     writeCmd("PWD" + END_LINE);
     readInto(out);
-}
-
-void FTPClient::parse(std::string ftpReply, std::string &host, int &port) const {
-    using namespace std;
-    const int MULT = 256;       // constant multiplier to find port
-
-    int first, last, ports[2];  // index, index, numbers to find port
-    ostringstream convert_to;   // convert to string
-    istringstream parser;       // convert to int
-
-    /* Extract substring */
-    first = ftpReply.find_first_of('(')+1;
-    last  = ftpReply.find_last_of(')');
-    ftpReply  = ftpReply.substr(first,last-first);
-
-    /* Replace all commas */    
-    for (int i = 0; i < 3; i++)
-        ftpReply.replace(ftpReply.find_first_of(','),1,".");
-    for (int i = 0; i < 2; i++)
-        ftpReply.replace(ftpReply.find_first_of(','),1," ");
-    parser.str(ftpReply);
-    parser >> host;
-
-    /* Find port number */
-    for (int i = 0; i < 2; i++) parser >> ports[i];
-    port = ports[0]*MULT+ports[1];
 }

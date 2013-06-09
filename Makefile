@@ -8,7 +8,7 @@ CXX = g++
 
 #--------------------------------------------------------------------------------------------------
 # Build Flags
-CFLAGS = -c -Wall -fstack-check
+CFLAGS = -c -Wall -fstack-check -g
 LINKFLAGS = -g
 
 #--------------------------------------------------------------------------------------------------
@@ -47,7 +47,7 @@ clean:
 # Source Rules
 
 $(BIN)/ftp.o: ftp.cpp
-	$(CXX) $(CFLAGS) ftp.cpp
+	$(CXX) $(CFLAGS) ftp.cpp -lboost_regex
 
 $(BIN)/Socket.o: Socket.cpp Socket.h
 	$(CXX) $(CFLAGS) Socket.cpp

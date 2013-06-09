@@ -21,7 +21,6 @@ class FTPClient {
         void writeCmd(const std::string &cmd);
         Socket* openPassive();
         bool close(std::ostream *output = NULL, const bool force=false);
-        void pasv(void) const;
         void list(const std::string);
         void authorize(std::string) const;
 
@@ -35,7 +34,6 @@ class FTPClient {
         Socket *dataSocket;
         static const int DEFAULT_PORT;
         std::string hostname;
-        void parse(std::string, std::string&, int&) const;
 };
 
 #endif
