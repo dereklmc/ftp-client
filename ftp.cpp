@@ -139,7 +139,7 @@ public:
             if (pid == 0) dataSocket->readInto(*context.output);  // child proc
 
             /* Send directory list to data port */
-            if (pid > 0) context.ftp.list();                      // parent
+            if (pid > 0) context.ftp.writeCmd("LIST" + FTPClient::END_LINE); // parent
 
             if (pid < 0) {                                        // failed
                 std::ostringstream error("Process failed to fork");
@@ -163,10 +163,16 @@ public:
             pid_t pid = fork();
 
             /* Block on read() */
-            if (pid == 0) dataSocket->readInto(*context.output);  // child proc
+            if (pid == 0) {                                       // child proc
+                dataSocket->readInto(*context.output);
 
+            }
             /*  */
-            else if (pid > 0) context.ftp.retrieve();             // parent
+            else if (pid > 0) {                                   // parent
+                context.ftp.typeCmd();
+                context.ftp.readInto(*context.output);  // get reply from socket
+                *context.input >>
+                context.ftp.retrieve();
 
             else if (pid < 0) {                                   // failed
                 std::ostringstream error("Process failed to fork");
