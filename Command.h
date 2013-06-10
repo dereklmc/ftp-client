@@ -3,9 +3,15 @@
 
 #include "Context.h"
 
+/**
+ * Interface for commands called by a user on the command line.
+ *
+ * This is simply a combination of the Command Patter and interpreter pattern.
+ */
 class Command {
 
     public:
+        /** Return status of execution */
         enum Status {
             OK, ERROR, EXIT
         };
