@@ -1,5 +1,5 @@
 open ftp.tripod.com 21
 css432
 UWB0th3ll
-put test.txt test.txt
+get test.txt
 quit
