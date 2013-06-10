@@ -75,7 +75,7 @@ Socket* FTPClient::openPassive(std::ostream &output) {
     responseStream >> port1; responseStream.ignore();
     responseStream >> port2;
     int port = port1 * 256 + port2;
-
+    DEBUG(std::cout << "Open data connection to \"" << host << ":" << port << "\"" << std::endl;)
     return new Socket(host.c_str(), port);
 }
 

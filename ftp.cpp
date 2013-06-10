@@ -20,7 +20,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define DEBUG
 // Declarations
 
 // Definitions
@@ -197,16 +196,10 @@ public:
     void execute(Context &context) {
         std::string localFile;
         std::string remoteFile;
-        #ifdef DEBUG
-        localFile = "mytest.txt";
-        remoteFile =  "testing";
-        #endif
-        #ifndef DEBUG
         *context.output << "(local-file) ";
         *context.input >> localFile;
         *context.output << "(remote-file) ";
         *context.input >> remoteFile;
-        #endif
         mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 
         int dirfd = open( remoteFile.c_str(), O_DIRECTORY | O_RDONLY, mode );
@@ -248,6 +241,20 @@ public:
     }
 };
 
+class Help : public Command {
+    public:
+        void execute(Context &context) {
+            *context.output << "Commands:" << std::endl
+                            << "open <host> <port> - open new ftp connection" << std::endl
+                            << "pwd - print working directory" << std::endl
+                            << "ls - list all files in current directory" << std::endl
+                            << "cd <directory> - change current working directory to given directory" << std::endl
+                            << "mkdir <directory> - create new directory within current directory" << std::endl
+                            << "get <filename> - download remote file" << std::endl
+                            << "put <filename> - upload local file" << std::endl;
+        }
+};
+
 int main(int argc, char *argv[]) {
 
     std::string hostname;
@@ -269,6 +276,7 @@ int main(int argc, char *argv[]) {
     std::auto_ptr<Command> put(new PutCmd());
     std::auto_ptr<Command> pwd(new PWDCmd());
     std::auto_ptr<Command> mkdir(new MkdirCmd());
+    std::auto_ptr<Command> help(new Help());
 
     std::map<std::string,Command*> commands;
     commands["open"] = open.get();
@@ -280,6 +288,7 @@ int main(int argc, char *argv[]) {
     commands["put"] = put.get();
     commands["pwd"] = pwd.get();
     commands["mkdir"] = mkdir.get();
+    commands["help"] = help.get();
     Context context(std::cin, std::cout);
     std::string shellName = "ftp";
     while (1) {
@@ -290,7 +299,7 @@ int main(int argc, char *argv[]) {
 
         std::map<std::string,Command*>::iterator itCmd = commands.find(commandStr);
         if (itCmd == commands.end()) {
-            std::cerr << "Command Does Not Exist!" << std::endl;
+            std::cerr << "Command \"" << commandStr << "\" Does Not Exist!" << std::endl;
         } else {
             itCmd->second->execute(context);
         }
