@@ -206,10 +206,16 @@ public:
     Command::Status execute(Context &context) {
         std::string localFile;
         std::string remoteFile;
-        *context.output << "(local-file) ";
-        *context.input >> localFile;
-        *context.output << "(remote-file) ";
-        *context.input >> remoteFile;
+        char c = context.input->peek();
+        if(c == '\n') {
+            *context.output << "(local-file) ";
+            *context.input >> localFile;
+            *context.output << "(remote-file) ";
+            *context.input >> remoteFile;
+        } else {
+            *context.input >> localFile;
+            *context.input >> remoteFile;
+        }
         mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 
         int dirfd = open( remoteFile.c_str(), O_DIRECTORY | O_RDONLY, mode );
@@ -244,9 +250,11 @@ public:
             }
             delete dataSocket;
             dataSocket = NULL;
+            return OK;
 
         } else {
             *context.output << "Could not establish data connection." << std::endl;
+            return ERROR;
         }
     }
 };
