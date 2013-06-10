@@ -140,22 +140,20 @@ public:
         Socket *dataSocket = context.ftp.openPassive(*context.output);  // FTP server PASV command
         if (dataSocket != NULL) {
 
-            pid_t pid = fork();
-
+            pid_t pid;
+            if((pid = fork()) == -1) {
+                perror("fork error");
+                exit(EXIT_FAILURE);
+            }
             /* Block on read() */
-            if (pid == 0) {         // child process
+            else if (pid == 0) {                    // child process
                 dataSocket->readInto(*context.output);
-                exit(0);
+                exit(EXIT_SUCCESS);
             }
             /* Send directory list to data port */
-            else if (pid > 0) {     // parent
+            else {                                  // parent process
                 context.ftp.writeCmd("LIST" + FTPClient::END_LINE);
                 context.ftp.readInto(*context.output);
-            }
-            else if (pid < 0) {     // failed
-                std::ostringstream error("Process failed to fork");
-                context.ftp.readInto(error);
-                exit(1);
             }
             delete dataSocket;
             dataSocket = NULL;
@@ -177,28 +175,26 @@ public:
 
             if (dataSocket != NULL) {
 
-                pid_t pid = fork();
-
+                pid_t pid;
+                if((pid = fork()) == -1) {
+                    perror("fork error");
+                    exit(EXIT_FAILURE);
+                }
                 /* Block on read() */
-                if (pid == 0) {                                       // child proc
+                else if (pid == 0) {                        // child process
                     std::fstream file;
                     file.open(fileName.c_str(), std::fstream::in |
                         std::fstream::out);
                     dataSocket->readInto(file);
                     file.close();
-                    exit(0);
+                    exit(EXIT_SUCCESS);
                 }
                 /*  */
-                else if (pid > 0) {                                   // parent
+                else {                                      // parent process
                     context.ftp.writeCmd("TYPE I" + FTPClient::END_LINE);
                     context.ftp.writeCmd("RETR " + fileName +
                         FTPClient::END_LINE);
                     context.ftp.readInto(*context.output);  // get reply
-                }
-                else if (pid < 0) {                                   // failed
-                    std::ostringstream error("Process failed to fork");
-                    dataSocket->readInto(error);
-                    exit(1);
                 }
                 delete dataSocket;
                 dataSocket = NULL;
@@ -217,11 +213,16 @@ public:
     void execute(Context &context) {
         std::string localFile;
         std::string remoteFile;
+        #ifdef DEBUG
+        localFile = "mytest.txt";
+        remoteFile =  "testing";
+        #endif
+        #ifndef DEBUG
         *context.output << "(local-file) ";
         *context.input >> localFile;
         *context.output << "(remote-file) ";
         *context.input >> remoteFile;
-
+        #endif
         mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 
         int dirfd = open( remoteFile.c_str(), O_DIRECTORY | O_RDONLY, mode );
@@ -231,28 +232,28 @@ public:
 
         if (dataSocket != NULL) {
 
-            pid_t pid = fork();
-
+            pid_t pid;
+            if((pid = fork()) == -1) {
+                perror("fork error");
+                exit(EXIT_FAILURE);
+            }
             /* Block on read() */
-            if (pid == 0) {                         // child process
+            else if (pid == 0) {                        // child process
                 std::fstream file;
                 file.open(localFile.c_str(), std::fstream::in |
                     std::fstream::out);
                 dataSocket->writeFrom(file);
                 file.close();
-                dataSocket->readInto(*context.output);
-                exit(0);
+                exit(EXIT_SUCCESS);
             }
             /*  */
-            else if (pid > 0) {                     // parent
+            else {                                      // parent process
                 context.ftp.writeCmd("TYPE I" + FTPClient::END_LINE);
                 context.ftp.writeCmd("STOR " + remoteFile +
                     FTPClient::END_LINE);
-                context.ftp.readInto(*context.output);  // get reply
-            } else if (pid < 0) {                   // failed
-                std::ostringstream error("Process failed to fork");
-                dataSocket->readInto(error);
-                exit(1);
+                int status = 0;
+                waitpid(pid,&status,0);
+                context.ftp.readInto(*context.output);
             }
             delete dataSocket;
             dataSocket = NULL;
