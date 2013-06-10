@@ -180,7 +180,6 @@ class GetCmd : public Command {
 public:
     Command::Status execute(Context &context) {
         struct timeval startTime,endTime;
-        gettimeofday(&startTime,NULL);
         std::string fileName;
         *context.input >> fileName;
         mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
@@ -207,16 +206,18 @@ public:
                 /*  */
                 else {                                      // parent process
                     context.ftp.writeCmd("TYPE I" + FTPClient::END_LINE);
+                    gettimeofday(&startTime,NULL);
                     context.ftp.writeCmd("RETR " + fileName +
                         FTPClient::END_LINE);
                     context.ftp.readInto(*context.output);  // get reply
+                    gettimeofday(&endTime,NULL);
                 }
                 delete dataSocket;
                 dataSocket = NULL;
-                gettimeofday(&endTime,NULL);
-                int dt = (int)((endTime.tv_sec - startTime.tv_sec) * 1000000 +
-                                    (endTime.tv_usec - startTime.tv_usec));
-                std::cerr << "Time: " << dt << std::endl;
+                float dt = ((float)(endTime.tv_sec - startTime.tv_sec) +
+                                    (float)(endTime.tv_usec - startTime.tv_usec)/100000.0);
+                *context.output << "Received in " << dt <<
+                    " seconds" << std::endl;
                 return OK;
             } else {
                 *context.output << "Could not establish data connection." << std::endl;
