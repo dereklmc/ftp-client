@@ -3,8 +3,9 @@
 #include <map>
 #include <memory>  // For auto_ptr, which is deprecated in C++11 (gcc v4.7+)
 #include <stdlib.h>
-#include <sstream>
 #include <pwd.h>
+#include <sstream> // stringstream
+#include <fstream>
 
 // Local
 #include "Command.h"
@@ -12,8 +13,14 @@
 #include "FTPClient.h"
 #include "debug.h"
 
-//#define DEBUG
+// Open (read/write) file in client/server + system rwx flags
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
+#define DEBUG
 // Declarations
 
 // Definitions
@@ -47,7 +54,6 @@ class OpenCmd : public Command {
                             << context.ftp.getHostname()
                             << ":" << netid << "): ";
             *context.input >> input;
-            DEBUG(std::cout << "D" << std::endl);
             context.ftp.writeCmd("USER " + input + FTPClient::END_LINE);
             context.ftp.readInto(*context.output);
             std::cout << "Password: ";
@@ -118,29 +124,23 @@ public:
         Socket *dataSocket = context.ftp.openPassive(*context.output);  // FTP server PASV command
         if (dataSocket != NULL) {
 
-            pid_t pid = fork();
-
+            pid_t pid;
+            if((pid = fork()) == -1) {
+                perror("fork error");
+                exit(EXIT_FAILURE);
+            }
             /* Block on read() */
-            if (pid == 0) {         // child proc
+            else if (pid == 0) {                    // child process
                 dataSocket->readInto(*context.output);
-                delete dataSocket;
-                dataSocket = NULL;
-                exit(0);
+                exit(EXIT_SUCCESS);
             }
             /* Send directory list to data port */
-            else if (pid > 0) {     // parent
+            else {                                  // parent process
                 context.ftp.writeCmd("LIST" + FTPClient::END_LINE);
                 context.ftp.readInto(*context.output);
-                delete dataSocket;
-                dataSocket = NULL;
             }
-            else if (pid < 0) {     // failed
-                std::ostringstream error("Process failed to fork");
-                dataSocket->readInto(error);
-                delete dataSocket;
-                dataSocket = NULL;
-                exit(1);
-            }
+            delete dataSocket;
+            dataSocket = NULL;
         } else {
             *context.output << "Could not establish data connection." << std::endl;
         }
@@ -150,39 +150,44 @@ public:
 class GetCmd : public Command {
 public:
     void execute(Context &context) {
-        std::string file;
-        *context.input >> file;
+        std::string fileName;
+        *context.input >> fileName;
+        mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 
-        Socket *dataSocket = context.ftp.openPassive(*context.output);  // send PASV command
+        if(open( fileName.c_str(), O_WRONLY | O_CREAT, mode )) {
+            Socket *dataSocket = context.ftp.openPassive(*context.output);  // send PASV command
 
-        if (dataSocket != NULL) {
+            if (dataSocket != NULL) {
 
-            pid_t pid = fork();
-
-            /* Block on read() */
-            if (pid == 0) {                                       // child proc
-                dataSocket->readInto(*context.output);
+                pid_t pid;
+                if((pid = fork()) == -1) {
+                    perror("fork error");
+                    exit(EXIT_FAILURE);
+                }
+                /* Block on read() */
+                else if (pid == 0) {                        // child process
+                    std::fstream file;
+                    file.open(fileName.c_str(), std::fstream::in |
+                        std::fstream::out);
+                    dataSocket->readInto(file);
+                    file.close();
+                    exit(EXIT_SUCCESS);
+                }
+                /*  */
+                else {                                      // parent process
+                    context.ftp.writeCmd("TYPE I" + FTPClient::END_LINE);
+                    context.ftp.writeCmd("RETR " + fileName +
+                        FTPClient::END_LINE);
+                    context.ftp.readInto(*context.output);  // get reply
+                }
                 delete dataSocket;
                 dataSocket = NULL;
-                exit(0);
-            }
-            /*  */
-            else if (pid > 0) {                                   // parent
-                context.ftp.writeCmd("TYPE I" + FTPClient::END_LINE);
-                context.ftp.writeCmd("RETR " + file + FTPClient::END_LINE);
-                context.ftp.readInto(*context.output);  // get reply
-                delete dataSocket;
-                dataSocket = NULL;
-            }
-            else if (pid < 0) {                                   // failed
-                std::ostringstream error("Process failed to fork");
-                dataSocket->readInto(error);
-                delete dataSocket;
-                dataSocket = NULL;
-                exit(1);
+
+            } else {
+                *context.output << "Could not establish data connection." << std::endl;
             }
         } else {
-            *context.output << "Could not establish data connection." << std::endl;
+            *context.output << "File error" << std::endl;
         }
     }
 };
@@ -190,6 +195,56 @@ public:
 class PutCmd : public Command {
 public:
     void execute(Context &context) {
+        std::string localFile;
+        std::string remoteFile;
+        #ifdef DEBUG
+        localFile = "mytest.txt";
+        remoteFile =  "testing";
+        #endif
+        #ifndef DEBUG
+        *context.output << "(local-file) ";
+        *context.input >> localFile;
+        *context.output << "(remote-file) ";
+        *context.input >> remoteFile;
+        #endif
+        mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+
+        int dirfd = open( remoteFile.c_str(), O_DIRECTORY | O_RDONLY, mode );
+        fchdir( dirfd );
+
+        Socket *dataSocket = context.ftp.openPassive(*context.output);  // send PASV command
+
+        if (dataSocket != NULL) {
+
+            pid_t pid;
+            if((pid = fork()) == -1) {
+                perror("fork error");
+                exit(EXIT_FAILURE);
+            }
+            /* Block on read() */
+            else if (pid == 0) {                        // child process
+                std::fstream file;
+                file.open(localFile.c_str(), std::fstream::in |
+                    std::fstream::out);
+                dataSocket->writeFrom(file);
+                file.close();
+                exit(EXIT_SUCCESS);
+            }
+            /*  */
+            else {                                      // parent process
+                context.ftp.writeCmd("TYPE I" + FTPClient::END_LINE);
+                context.ftp.writeCmd("STOR " + remoteFile +
+                    FTPClient::END_LINE);
+                int status = 0;
+                waitpid(pid,&status,0);
+                context.ftp.readInto(*context.output);
+            }
+            delete dataSocket;
+            dataSocket = NULL;
+
+        } else {
+            *context.output << "Could not establish data connection." << std::endl;
+        }
     }
 };
 
@@ -242,5 +297,3 @@ int main(int argc, char *argv[]) {
     }
 
 }
-
-// open ftp.tripod.com 21

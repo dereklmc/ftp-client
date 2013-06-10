@@ -76,7 +76,9 @@ void Socket::readInto(std::ostream &output) {
  * TODO
  */
 void Socket::writeFrom(std::istream &input) {
-    // TODO
+    std::string buf;
+    input >> buf;
+    write<const char>(buf.c_str(), buf.length());
 }
 
 /**

@@ -94,15 +94,6 @@ bool FTPClient::close(std::ostream *output, const bool force) {
     return true;
 }
 
-void FTPClient::store(const std::string &input) {
-
-}
-
-void FTPClient::retrieve(const std::string &input) {
-    std::string retrCmdStr = "retr " + input + "\r\n";
-    controlSocket->write<const char>(retrCmdStr.c_str(),retrCmdStr.size());
-}
-
 const std::string FTPClient::getHostname(void) const {
     return hostname;
 }
