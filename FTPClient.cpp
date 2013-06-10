@@ -93,13 +93,6 @@ bool FTPClient::close(std::ostream *output, const bool force) {
     return true;
 }
 
-void FTPClient::authorize(std::string input) const {
-    char buf[1024];
-    strcpy(buf, input.c_str());
-    strcat(buf, "\r\n");
-    controlSocket->write<char>(buf, (int)input.length()+2);
-}
-
 const std::string FTPClient::getHostname(void) const {
     return hostname;
 }

@@ -21,7 +21,6 @@ class FTPClient {
         void writeCmd(const std::string &cmd);
         Socket* openPassive(std::ostream &output);
         bool close(std::ostream *output = NULL, const bool force=false);
-        void authorize(std::string) const;
         void pwd(std::ostream &out);
         const std::string getHostname(void) const;
 
