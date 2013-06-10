@@ -216,9 +216,9 @@ public:
             *context.input >> localFile;
             *context.input >> remoteFile;
         }
-        mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+        // mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 
-        int dirfd = open( remoteFile.c_str(), O_DIRECTORY | O_RDONLY, mode );
+        int dirfd = open( remoteFile.c_str(), O_DIRECTORY | O_RDONLY);
         fchdir( dirfd );
 
         Socket *dataSocket = context.ftp.openPassive(*context.output);  // send PASV command
@@ -236,6 +236,7 @@ public:
                 file.open(localFile.c_str(), std::fstream::in |
                     std::fstream::out);
                 dataSocket->writeFrom(file);
+                dataSocket->shutdown();
                 file.close();
                 exit(EXIT_SUCCESS);
             }
