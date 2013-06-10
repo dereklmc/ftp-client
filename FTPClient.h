@@ -25,10 +25,10 @@ class FTPClient {
         const std::string getHostname(void) const;
 
         static const std::string END_LINE;
+        static const int DEFAULT_PORT;
 
     private:
         Socket *controlSocket;
-        static const int DEFAULT_PORT;
         std::string hostname;
 };
 

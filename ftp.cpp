@@ -31,6 +31,11 @@ class OpenCmd : public Command {
             std::string hostname;
             int port;
             *context.input >> hostname >> port;
+            open(hostname, port, context);
+            return OK;
+        }
+
+        void open(std::string hostname, int port, Context &context) {
             *context.output << "Open connection to \"" << hostname << ":" << port << "\"" << std::endl;
             context.ftp.open(hostname, port);
             context.ftp.readInto(*context.output);
@@ -42,7 +47,6 @@ class OpenCmd : public Command {
             int pwd_code;
             currDirStream >> pwd_code;
             currDirStream >> context.workingDirectory;
-            return OK;
         }
 
         void authorize(Context &context) {
@@ -104,6 +108,23 @@ class MkdirCmd : public Command {
             std::string dir;
             *context.input >> dir;
             context.ftp.writeCmd("MKD " + dir + FTPClient::END_LINE);
+            return OK;
+        }
+};
+
+class MoveCmd : public Command {
+    public:
+        Command::Status execute(Context &context) {
+            if (!context.ftp.isOpen()) {
+                return ERROR;
+            }
+            std::string origin, dest;
+            *context.input >> origin >> dest;
+            std::stringstream moveCmdStream;
+            moveCmdStream << "RNFR " << origin << FTPClient::END_LINE
+                          << "RNTO " << dest << FTPClient::END_LINE;
+            context.ftp.writeCmd(moveCmdStream.str());
+            context.ftp.readInto(*context.output);
             return OK;
         }
 };
@@ -284,13 +305,13 @@ class Help : public Command {
 
 int main(int argc, char *argv[]) {
 
-    std::string hostname;
+    std::string hostname = "";
     if (argc > 1) {
         std::string arg1 = argv[1];
         if (arg1 == "help") {
             std::cout << "usage: " << argv[0] << "[ftpserver]" << std::endl;
         } else {
-            hostname = arg1;
+            hostname = std::string(arg1);
         }
     }
 
@@ -304,6 +325,7 @@ int main(int argc, char *argv[]) {
     std::auto_ptr<Command> pwd(new PWDCmd());
     std::auto_ptr<Command> mkdir(new MkdirCmd());
     std::auto_ptr<Command> help(new Help());
+    std::auto_ptr<Command> move(new MoveCmd());
 
     std::map<std::string,Command*> commands;
     commands["open"] = open.get();
@@ -316,7 +338,13 @@ int main(int argc, char *argv[]) {
     commands["pwd"] = pwd.get();
     commands["mkdir"] = mkdir.get();
     commands["help"] = help.get();
+    commands["move"] = move.get();
+    commands["mv"] = move.get();
+
     Context context(std::cin, std::cout);
+    if (hostname.size() > 0) {
+        OpenCmd().open(hostname, FTPClient::DEFAULT_PORT, context);
+    }
     std::string shellName = "ftp";
     std::string commandStr;
     while (1) {
