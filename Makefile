@@ -20,7 +20,6 @@ FTPOBJS = \
 	$(BIN)/Context.o
 
 COMMONOBJS = \
-	$(BIN)/ArgParse.o \
 	$(BIN)/CommandParser.o \
 	$(BIN)/Socket.o
 
@@ -51,9 +50,6 @@ $(BIN)/ftp.o: ftp.cpp
 
 $(BIN)/Socket.o: Socket.cpp Socket.h
 	$(CXX) $(CFLAGS) Socket.cpp
-
-$(BIN)/ArgParse.o: ArgParse.cpp ArgParse.h
-	$(CXX) $(CFLAGS) ArgParse.cpp
 
 $(BIN)/CommandParser.o: CommandParser.cpp CommandParser.h Command.h Context.h
 	$(CXX) $(CFLAGS) CommandParser.cpp

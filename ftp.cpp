@@ -7,7 +7,6 @@
 
 
 // Local
-#include "ArgParse.h"
 #include "CommandParser.h"
 #include "Command.h"
 #include "Context.h"
@@ -207,10 +206,14 @@ public:
 
 int main(int argc, char *argv[]) {
 
-    ArgParse argparser;
-    argparser.addArgument("ftpserver", false);
-    if (!argparser.parse(argc, argv)) {
-        std::cout << "usage: " << argparser.usage(argv[0]) << std::endl;
+    std::string hostname;
+    if (argc > 1) {
+        std::string arg1 = argv[1];
+        if (arg1 == "help") {
+            std::cout << "usage: " << argv[0] << "[ftpserver]" << std::endl;
+        } else {
+            hostname = arg1;
+        }
     }
 
     std::auto_ptr<Command> open(new OpenCmd());
