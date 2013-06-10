@@ -17,6 +17,7 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -157,6 +158,8 @@ public:
 class GetCmd : public Command {
 public:
     Command::Status execute(Context &context) {
+        struct timeval startTime,endTime;
+        gettimeofday(&startTime,NULL);
         std::string fileName;
         *context.input >> fileName;
         mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
@@ -189,6 +192,10 @@ public:
                 }
                 delete dataSocket;
                 dataSocket = NULL;
+                gettimeofday(&endTime,NULL);
+                int dt = (int)((endTime.tv_sec - startTime.tv_sec) * 1000000 +
+                                    (endTime.tv_usec - startTime.tv_usec));
+                std::cerr << "Time: " << dt << std::endl;
                 return OK;
             } else {
                 *context.output << "Could not establish data connection." << std::endl;
