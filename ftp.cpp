@@ -26,7 +26,7 @@
 
 class OpenCmd : public Command {
     public:
-        void execute(Context &context) {
+        Command::STATUS execute(Context &context) {
             std::string hostname;
             int port;
             *context.input >> hostname >> port;
@@ -41,6 +41,7 @@ class OpenCmd : public Command {
             int pwd_code;
             currDirStream >> pwd_code;
             currDirStream >> context.workingDirectory;
+            return OK;
         }
 
         void authorize(Context &context) {
@@ -64,45 +65,51 @@ class OpenCmd : public Command {
 
 class PWDCmd : public Command {
     public:
-        void execute(Context &context) {
+        Command::STATUS execute(Context &context) {
             context.ftp.pwd(*context.output);
+            return OK;
         }
 };
 
 class CloseCmd : public Command {
     public:
-        void execute(Context &context) {
+        Command::STATUS execute(Context &context) {
             if (context.ftp.isOpen()) {
                 context.ftp.close(context.output);
+                return OK;
             } else {
                 *context.output << "No connection to close." << std::endl;
+                return ERROR;
             }
         }
 };
 
 class QuitCmd : public CloseCmd {
     public:
-        void execute(Context &context) {
+        Command::STATUS execute(Context &context) {
             CloseCmd::execute(context);
             *context.output << "GOODBYE!" << std::endl;
-            exit(0);
+            //exit(0);
+            return EXIT;
         }
 };
 
 class MkdirCmd : public Command {
     public:
-        void execute(Context &context) {
-            if (context.ftp.isOpen()) {
-                std::string dir;
-                *context.input >> dir;
-                context.ftp.writeCmd("MKD " + dir + FTPClient::END_LINE);
+        Command::STATUS execute(Context &context) {
+            if (!context.ftp.isOpen()) {
+                return ERROR;
             }
+            std::string dir;
+            *context.input >> dir;
+            context.ftp.writeCmd("MKD " + dir + FTPClient::END_LINE);
+            return OK;
         }
 };
 
 class CdCmd : public Command {
 public:
-    void execute(Context &context) {
+    Command::STATUS execute(Context &context) {
         std::string directory;
         *context.input >> directory;
         context.ftp.writeCmd("CWD " + directory + FTPClient::END_LINE);
@@ -114,41 +121,42 @@ public:
         int pwd_code;
         currDirStream >> pwd_code;
         currDirStream >> context.workingDirectory;
+        return OK;
     }
 };
 
 class LsCmd : public Command {
 public:
-    void execute(Context &context) {
+    Command::STATUS execute(Context &context) {
         Socket *dataSocket = context.ftp.openPassive(*context.output);  // FTP server PASV command
-        if (dataSocket != NULL) {
-
-            pid_t pid;
-            if((pid = fork()) == -1) {
-                perror("fork error");
-                exit(EXIT_FAILURE);
-            }
-            /* Block on read() */
-            else if (pid == 0) {                    // child process
-                dataSocket->readInto(*context.output);
-                exit(EXIT_SUCCESS);
-            }
-            /* Send directory list to data port */
-            else {                                  // parent process
-                context.ftp.writeCmd("LIST" + FTPClient::END_LINE);
-                context.ftp.readInto(*context.output);
-            }
-            delete dataSocket;
-            dataSocket = NULL;
-        } else {
+        if (dataSocket == NULL) {
             *context.output << "Could not establish data connection." << std::endl;
+            return ERROR;
         }
+        pid_t pid;
+        if((pid = fork()) == -1) {
+            perror("fork error");
+            exit(EXIT_FAILURE);
+        }
+        /* Block on read() */
+        else if (pid == 0) {                    // child process
+            dataSocket->readInto(*context.output);
+            exit(EXIT_SUCCESS);
+        }
+        /* Send directory list to data port */
+        else {                                  // parent process
+            context.ftp.writeCmd("LIST" + FTPClient::END_LINE);
+            context.ftp.readInto(*context.output);
+        }
+        delete dataSocket;
+        dataSocket = NULL;
+        return OK;
     }
 };
 
 class GetCmd : public Command {
 public:
-    void execute(Context &context) {
+    Command::STATUS execute(Context &context) {
         std::string fileName;
         *context.input >> fileName;
         mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
@@ -181,19 +189,21 @@ public:
                 }
                 delete dataSocket;
                 dataSocket = NULL;
-
+                return OK;
             } else {
                 *context.output << "Could not establish data connection." << std::endl;
+                return ERROR;
             }
         } else {
             *context.output << "File error" << std::endl;
+            return ERROR;
         }
     }
 };
 
 class PutCmd : public Command {
 public:
-    void execute(Context &context) {
+    Command::STATUS execute(Context &context) {
         std::string localFile;
         std::string remoteFile;
         *context.output << "(local-file) ";
@@ -243,7 +253,7 @@ public:
 
 class Help : public Command {
     public:
-        void execute(Context &context) {
+        Command::STATUS execute(Context &context) {
             *context.output << "Commands:" << std::endl
                             << "open <host> <port> - open new ftp connection" << std::endl
                             << "pwd - print working directory" << std::endl
@@ -252,6 +262,7 @@ class Help : public Command {
                             << "mkdir <directory> - create new directory within current directory" << std::endl
                             << "get <filename> - download remote file" << std::endl
                             << "put <filename> - upload local file" << std::endl;
+            return OK;
         }
 };
 
@@ -291,8 +302,8 @@ int main(int argc, char *argv[]) {
     commands["help"] = help.get();
     Context context(std::cin, std::cout);
     std::string shellName = "ftp";
+    std::string commandStr;
     while (1) {
-        std::string commandStr;
         std::cout << shellName << ":" << context.workingDirectory << "> " << std::flush;
         std::cin >> commandStr;
 

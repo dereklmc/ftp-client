@@ -6,10 +6,13 @@
 class Command {
 
     public:
+        enum STATUS {
+            OK, ERROR, EXIT
+        };
+
         virtual ~Command() { }
 
-        virtual void execute(Context &context) =0;
-
+        virtual Command::STATUS execute(Context &context) =0;
 };
 
 #endif
