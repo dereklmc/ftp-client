@@ -94,13 +94,6 @@ bool FTPClient::close(std::ostream *output, const bool force) {
     return true;
 }
 
-void FTPClient::authorize(std::string input) const {
-    char buf[1024];
-    strcpy(buf, input.c_str());
-    strcat(buf, "\r\n");
-    controlSocket->write<char>(buf, (int)input.length()+2);
-}
-
 void FTPClient::store(const std::string &input) {
 
 }
@@ -121,30 +114,4 @@ void FTPClient::writeCmd(const std::string &cmd) {
 void FTPClient::pwd(std::ostream &out) {
     writeCmd("PWD" + END_LINE);
     readInto(out);
-}
-
-void FTPClient::parse(std::string ftpReply, std::string &host, int &port) const {
-    using namespace std;
-    const int MULT = 256;       // constant multiplier to find port
-
-    int first, last, ports[2];  // index, index, numbers to find port
-    ostringstream convert_to;   // convert to string
-    istringstream parser;       // convert to int
-
-    /* Extract substring */
-    first = ftpReply.find_first_of('(')+1;
-    last  = ftpReply.find_last_of(')');
-    ftpReply  = ftpReply.substr(first,last-first);
-
-    /* Replace all commas */
-    for (int i = 0; i < 3; i++)
-        ftpReply.replace(ftpReply.find_first_of(','),1,".");
-    for (int i = 0; i < 2; i++)
-        ftpReply.replace(ftpReply.find_first_of(','),1," ");
-    parser.str(ftpReply);
-    parser >> host;
-
-    /* Find port number */
-    for (int i = 0; i < 2; i++) parser >> ports[i];
-    port = ports[0]*MULT+ports[1];
 }

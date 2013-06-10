@@ -48,11 +48,11 @@ class OpenCmd : public Command {
                             << ":" << netid << "): ";
             *context.input >> input;
             DEBUG(std::cout << "D" << std::endl);
-            context.ftp.authorize("USER " + input);
+            context.ftp.writeCmd("USER " + input + FTPClient::END_LINE);
             context.ftp.readInto(*context.output);
             std::cout << "Password: ";
             *context.input >> input;
-            context.ftp.authorize("PASS " + input);
+            context.ftp.writeCmd("PASS " + input + FTPClient::END_LINE);
             context.ftp.readInto(*context.output);
         }
 };
@@ -67,16 +67,18 @@ class PWDCmd : public Command {
 class CloseCmd : public Command {
     public:
         void execute(Context &context) {
-            context.ftp.close(context.output);
+            if (context.ftp.isOpen()) {
+                context.ftp.close(context.output);
+            } else {
+                *context.output << "No connection to close." << std::endl;
+            }
         }
 };
 
-class QuitCmd : public Command {
+class QuitCmd : public CloseCmd {
     public:
         void execute(Context &context) {
-            if (context.ftp.isOpen()) {
-                context.ftp.close(context.output);
-            }
+            CloseCmd::execute(context);
             *context.output << "GOODBYE!" << std::endl;
             exit(0);
         }
