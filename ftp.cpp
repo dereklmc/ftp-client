@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include <sstream>
 
-// Boost
-#include <boost/regex.hpp>
 
 // Local
 #include "ArgParse.h"

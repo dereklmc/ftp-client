@@ -1,7 +1,6 @@
 #include "FTPClient.h"
 #include <string.h> // strcpy, strcat
 #include <stdio.h>  // printf
-#include <boost/regex.hpp>
 #include "Socket.h"
 #include <sstream>  // istringstream, ostringstream
 #include <sys/types.h>
