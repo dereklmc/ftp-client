@@ -20,7 +20,6 @@ FTPOBJS = \
 	$(BIN)/Context.o
 
 COMMONOBJS = \
-	$(BIN)/CommandParser.o \
 	$(BIN)/Socket.o
 
 #--------------------------------------------------------------------------------------------------
@@ -46,13 +45,10 @@ clean:
 # Source Rules
 
 $(BIN)/ftp.o: ftp.cpp
-	$(CXX) $(CFLAGS) ftp.cpp -lboost_regex
+	$(CXX) $(CFLAGS) ftp.cpp
 
 $(BIN)/Socket.o: Socket.cpp Socket.h
 	$(CXX) $(CFLAGS) Socket.cpp
-
-$(BIN)/CommandParser.o: CommandParser.cpp CommandParser.h Command.h Context.h
-	$(CXX) $(CFLAGS) CommandParser.cpp
 
 $(BIN)/Context.o: Context.cpp Context.h
 	$(CXX) $(CFLAGS) Context.cpp

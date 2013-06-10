@@ -5,6 +5,8 @@
 #include <sstream>  // istringstream, ostringstream
 #include <sys/types.h>
 
+#include "debug.h"
+
 const int FTPClient::DEFAULT_PORT(21);
 const std::string FTPClient::END_LINE("\r\n");
 

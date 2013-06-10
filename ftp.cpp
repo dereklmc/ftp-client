@@ -4,15 +4,15 @@
 #include <memory>  // For auto_ptr, which is deprecated in C++11 (gcc v4.7+)
 #include <stdlib.h>
 #include <sstream>
-
+#include <pwd.h>
 
 // Local
-#include "CommandParser.h"
 #include "Command.h"
 #include "Context.h"
 #include "FTPClient.h"
+#include "debug.h"
 
-#define DEBUG
+//#define DEBUG
 
 // Declarations
 
@@ -23,13 +23,7 @@ class OpenCmd : public Command {
         void execute(Context &context) {
             std::string hostname;
             int port;
-            #ifdef DEBUG
-            hostname = "ftp.tripod.com";
-            port = 21;
-            #endif
-            #ifndef DEBUG
             *context.input >> hostname >> port;
-            #endif
             *context.output << "Open connection to \"" << hostname << ":" << port << "\"" << std::endl;
             context.ftp.open(hostname, port);
             context.ftp.readInto(*context.output);
@@ -44,27 +38,20 @@ class OpenCmd : public Command {
         }
 
         void authorize(Context &context) {
-            std::string netid(getlogin());
+            struct passwd *pass;
+            pass = getpwuid(getuid());
+            std::string netid(pass->pw_name);
             std::string input;
 
             *context.output << "Name ("
                             << context.ftp.getHostname()
                             << ":" << netid << "): ";
-            #ifdef DEBUG
-            input = "css432";
-            #endif
-            #ifndef DEBUG
             *context.input >> input;
-            #endif
+            DEBUG(std::cout << "D" << std::endl);
             context.ftp.authorize("USER " + input);
             context.ftp.readInto(*context.output);
             std::cout << "Password: ";
-            #ifdef DEBUG
-            input = "UWB0th3ll";
-            #endif
-            #ifndef DEBUG
             *context.input >> input;
-            #endif
             context.ftp.authorize("PASS " + input);
             context.ftp.readInto(*context.output);
         }
@@ -225,20 +212,31 @@ int main(int argc, char *argv[]) {
     std::auto_ptr<Command> put(new PutCmd());
     std::auto_ptr<Command> pwd(new PWDCmd());
     std::auto_ptr<Command> mkdir(new MkdirCmd());
-    CommandParser cmdParser("ftp");
-    cmdParser.addCommand("open", open.get());
-    cmdParser.addCommand("quit", quit.get());
-    cmdParser.addCommand("cd", cd.get());
-    cmdParser.addCommand("close", close.get());
-    cmdParser.addCommand("ls", ls.get());
-    cmdParser.addCommand("get", get.get());
-    cmdParser.addCommand("put", put.get());
-    cmdParser.addCommand("pwd", pwd.get());
-    cmdParser.addCommand("mkdir", mkdir.get());
 
+    std::map<std::string,Command*> commands;
+    commands["open"] = open.get();
+    commands["quit"] = quit.get();
+    commands["cd"] = cd.get();
+    commands["close"] = close.get();
+    commands["ls"] = ls.get();
+    commands["get"] = get.get();
+    commands["put"] = put.get();
+    commands["pwd"] = pwd.get();
+    commands["mkdir"] = mkdir.get();
     Context context(std::cin, std::cout);
+    std::string shellName = "ftp";
     while (1) {
-        cmdParser.parse(context);
+        std::string commandStr;
+        std::cout << shellName << ":" << context.workingDirectory << "> " << std::flush;
+        std::cin >> commandStr;
+
+
+        std::map<std::string,Command*>::iterator itCmd = commands.find(commandStr);
+        if (itCmd == commands.end()) {
+            std::cerr << "Command Does Not Exist!" << std::endl;
+        } else {
+            itCmd->second->execute(context);
+        }
     }
 
 }
