@@ -76,9 +76,20 @@ void Socket::readInto(std::ostream &output) {
  * TODO
  */
 void Socket::writeFrom(std::istream &input) {
-    std::string buf;
-    input >> buf;
-    write<const char>(buf.c_str(), buf.length());
+    char buf[Socket::BUF_SIZE];
+    int i = 0;
+    while (1) {
+        if (i == Socket::BUF_SIZE) {
+            i = 0;
+            this->write<char>(buf, Socket::BUF_SIZE);
+        } else if (!(input >> buf[i]) || input.eof()) {
+            break;
+        }
+        i++;
+    }
+    if (i > 0) {
+        write<char>(buf, i+1);
+    }
 }
 
 /**
