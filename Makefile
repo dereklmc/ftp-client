@@ -15,7 +15,7 @@ LINKFLAGS = -g
 # Object Files
 
 FTPOBJS = \
-	$(BIN)/ftp.o \
+	$(BIN)/main.o \
 	$(BIN)/FTPClient.o \
 	$(BIN)/Context.o
 
@@ -36,7 +36,7 @@ INTERFACES = Command.h
 # Targets
 
 ftp: $(FTPOBJS) $(COMMONOBJS) $(TEMPLATES) $(INTERFACES)
-	$(CXX) $(LINKFLAGS) -o ftp.run $(FTPOBJS) $(COMMONOBJS)
+	$(CXX) $(LINKFLAGS) -o ftp $(FTPOBJS) $(COMMONOBJS)
 
 clean:
 	rm -f *.o $(BIN)/*.o *.run
@@ -44,8 +44,8 @@ clean:
 #--------------------------------------------------------------------------------------------------
 # Source Rules
 
-$(BIN)/ftp.o: ftp.cpp
-	$(CXX) $(CFLAGS) ftp.cpp
+$(BIN)/ftp.o: main.cpp
+	$(CXX) $(CFLAGS) main.cpp
 
 $(BIN)/Socket.o: Socket.cpp Socket.h
 	$(CXX) $(CFLAGS) Socket.cpp
