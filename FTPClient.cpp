@@ -7,6 +7,8 @@
 
 #include "debug.h"
 
+#define CLOSE_CONN 421
+
 const int FTPClient::DEFAULT_PORT(21);
 const std::string FTPClient::END_LINE("\r\n");
 
@@ -23,7 +25,7 @@ FTPClient::FTPClient(std::string hostname, int port) :
 FTPClient::~FTPClient()
 {
     if (isOpen()) {
-        close();
+        close(std::cerr);
     }
 }
 
@@ -49,11 +51,11 @@ void FTPClient::writeFrom(std::istream &input) {
 }
 
 Socket* FTPClient::openPassive(std::ostream &output) {
-    const char *pasvCmd = "PASV\r\n";
-    controlSocket->write<const char>(pasvCmd, 6);
-
     std::stringstream responseStream;
-    controlSocket->readInto(responseStream);
+    if (!writeCmd("PASV" + END_LINE, responseStream)) {
+        return NULL;
+    }
+
     output << responseStream.str();
 
     int code = 0;
@@ -79,14 +81,9 @@ Socket* FTPClient::openPassive(std::ostream &output) {
     return new Socket(host.c_str(), port);
 }
 
-bool FTPClient::close(std::ostream *output, const bool force) {
-    if (!isOpen()) {
+bool FTPClient::close(std::ostream &output, const bool force) {
+    if (!writeCmd("QUIT" + END_LINE, output)) {
         return false;
-    }
-    const char *closeCmdString = "QUIT\r\n";
-    controlSocket->write<const char>(closeCmdString, 6);
-    if (output != NULL) {
-        readInto(*output);
     }
 
     delete controlSocket;
@@ -98,11 +95,27 @@ const std::string FTPClient::getHostname(void) const {
     return hostname;
 }
 
-void FTPClient::writeCmd(const std::string &cmd) {
+bool FTPClient::writeCmd(const std::string &cmd, std::ostream &output) {
+    if (!isOpen()) {
+        return false;
+    }
     controlSocket->write<const char>(cmd.c_str(), cmd.size());
+    std::stringstream result;
+    int returnCode;
+
+    readInto(result);
+    output << result.str();
+
+    result >> returnCode;
+    if (returnCode == CLOSE_CONN) {
+        delete controlSocket;
+        controlSocket = NULL;
+        output << "Connection closed by server!" << std::endl;
+        return false;
+    }
+    return true;
 }
 
-void FTPClient::pwd(std::ostream &out) {
-    writeCmd("PWD" + END_LINE);
-    readInto(out);
+bool FTPClient::pwd(std::ostream &out) {
+    return writeCmd("PWD" + END_LINE, out);
 }

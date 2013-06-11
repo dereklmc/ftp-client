@@ -31,25 +31,30 @@ class OpenCmd : public Command {
             std::string hostname;
             int port;
             *context.input >> hostname >> port;
-            open(hostname, port, context);
-            return OK;
+            return open(hostname, port, context);
         }
 
-        void open(std::string hostname, int port, Context &context) {
+        Command::Status open(std::string hostname, int port, Context &context) {
             *context.output << "Open connection to \"" << hostname << ":" << port << "\"" << std::endl;
             context.ftp.open(hostname, port);
             context.ftp.readInto(*context.output);
 
-            authorize(context);
+            Command::Status authResult = authorize(context);
+            if (authResult != OK) {
+                return authResult;
+            }
 
             std::stringstream currDirStream;
-            context.ftp.pwd(currDirStream);
+            if (!context.ftp.pwd(currDirStream)) {
+                return ERROR;
+            }
             int pwd_code;
             currDirStream >> pwd_code;
             currDirStream >> context.workingDirectory;
+            return OK;
         }
 
-        void authorize(Context &context) {
+        Command::Status authorize(Context &context) {
             struct passwd *pass;
             pass = getpwuid(getuid());
             std::string netid(pass->pw_name);
@@ -59,19 +64,24 @@ class OpenCmd : public Command {
                             << context.ftp.getHostname()
                             << ":" << netid << "): ";
             *context.input >> input;
-            context.ftp.writeCmd("USER " + input + FTPClient::END_LINE);
-            context.ftp.readInto(*context.output);
+            if (!context.ftp.writeCmd("USER " + input + FTPClient::END_LINE, *context.output)) {
+                return ERROR;
+            }
             std::cout << "Password: ";
             *context.input >> input;
-            context.ftp.writeCmd("PASS " + input + FTPClient::END_LINE);
-            context.ftp.readInto(*context.output);
+            if (!context.ftp.writeCmd("PASS " + input + FTPClient::END_LINE, *context.output)) {
+                return ERROR;
+            }
+            return OK;
         }
 };
 
 class PWDCmd : public Command {
     public:
         Command::Status execute(Context &context) {
-            context.ftp.pwd(*context.output);
+            if (!context.ftp.pwd(*context.output)) {
+                return ERROR;
+            }
             return OK;
         }
 };
@@ -80,7 +90,7 @@ class CloseCmd : public Command {
     public:
         Command::Status execute(Context &context) {
             if (context.ftp.isOpen()) {
-                context.ftp.close(context.output);
+                context.ftp.close(*context.output);
                 return OK;
             } else {
                 *context.output << "No connection to close." << std::endl;
@@ -107,7 +117,9 @@ class MkdirCmd : public Command {
             }
             std::string dir;
             *context.input >> dir;
-            context.ftp.writeCmd("MKD " + dir + FTPClient::END_LINE);
+            if (!context.ftp.writeCmd("MKD " + dir + FTPClient::END_LINE, *context.output)) {
+                return ERROR;
+            }
             return OK;
         }
 };
@@ -123,8 +135,9 @@ class MoveCmd : public Command {
             std::stringstream moveCmdStream;
             moveCmdStream << "RNFR " << origin << FTPClient::END_LINE
                           << "RNTO " << dest << FTPClient::END_LINE;
-            context.ftp.writeCmd(moveCmdStream.str());
-            context.ftp.readInto(*context.output);
+            if (!context.ftp.writeCmd(moveCmdStream.str(), *context.output)) {
+                return ERROR;
+            }
             return OK;
         }
 };
@@ -134,12 +147,14 @@ public:
     Command::Status execute(Context &context) {
         std::string directory;
         *context.input >> directory;
-        context.ftp.writeCmd("CWD " + directory + FTPClient::END_LINE);
-
-        context.ftp.readInto(*context.output);
+        if (!context.ftp.writeCmd("CWD " + directory + FTPClient::END_LINE, *context.output)) {
+            return ERROR;
+        }
 
         std::stringstream currDirStream;
-        context.ftp.pwd(currDirStream);
+        if (!context.ftp.pwd(currDirStream)) {
+            return ERROR;
+        }
         int pwd_code;
         currDirStream >> pwd_code;
         currDirStream >> context.workingDirectory;
@@ -167,8 +182,9 @@ public:
         }
         /* Send directory list to data port */
         else {                                  // parent process
-            context.ftp.writeCmd("LIST" + FTPClient::END_LINE);
-            context.ftp.readInto(*context.output);
+            if (!context.ftp.writeCmd("LIST" + FTPClient::END_LINE, *context.output)) {
+                return ERROR;
+            }
         }
         delete dataSocket;
         dataSocket = NULL;
@@ -205,11 +221,13 @@ public:
                 }
                 /*  */
                 else {                                      // parent process
-                    context.ftp.writeCmd("TYPE I" + FTPClient::END_LINE);
+                    if (!context.ftp.writeCmd("TYPE I" + FTPClient::END_LINE, *context.output)) {
+                        return ERROR;
+                    }
                     gettimeofday(&startTime,NULL);
                     context.ftp.writeCmd("RETR " + fileName +
-                        FTPClient::END_LINE);
-                    context.ftp.readInto(*context.output);  // get reply
+                        FTPClient::END_LINE, *context.output);
+                    //context.ftp.readInto(*context.output, *context.output);  // get reply
                     gettimeofday(&endTime,NULL);
                 }
                 delete dataSocket;
@@ -271,9 +289,13 @@ public:
             }
             /*  */
             else {                                      // parent process
-                context.ftp.writeCmd("TYPE I" + FTPClient::END_LINE);
-                context.ftp.writeCmd("STOR " + remoteFile +
-                    FTPClient::END_LINE);
+                if (!context.ftp.writeCmd("TYPE I" + FTPClient::END_LINE, *context.output)) {
+                    return ERROR;
+                }
+                if (!context.ftp.writeCmd("STOR " + remoteFile +
+                    FTPClient::END_LINE, *context.output)) {
+                    return ERROR;
+                }
                 int status = 0;
                 waitpid(pid,&status,0);
                 context.ftp.readInto(*context.output);
