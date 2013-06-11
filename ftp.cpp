@@ -209,6 +209,8 @@ public:
                     gettimeofday(&startTime,NULL);
                     context.ftp.writeCmd("RETR " + fileName +
                         FTPClient::END_LINE);
+                    int status;
+                    waitpid(pid,&status,0);
                     context.ftp.readInto(*context.output);  // get reply
                     gettimeofday(&endTime,NULL);
                 }
@@ -245,9 +247,9 @@ public:
             *context.input >> localFile;
             *context.input >> remoteFile;
         }
-        // mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+        mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 
-        int dirfd = open( remoteFile.c_str(), O_DIRECTORY | O_RDONLY);
+        int dirfd = open( remoteFile.c_str(), O_DIRECTORY | O_RDONLY, mode);
         fchdir( dirfd );
 
         Socket *dataSocket = context.ftp.openPassive(*context.output);  // send PASV command
