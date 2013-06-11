@@ -1,3 +1,12 @@
+/**
+ * @file FTPClient.cpp
+ * @brief Definitions for FTP Client.
+ *
+ * @author Derek McLean, Mitch Carlson
+ *
+ * @date 11-06-2013
+ */
+
 #include "FTPClient.h"
 #include <string.h> // strcpy, strcat
 #include <stdio.h>  // printf
@@ -7,21 +16,18 @@
 
 #include "debug.h"
 
+// FTP return code if the serve is closing the connection.
 #define CLOSE_CONN 421
 
 const int FTPClient::DEFAULT_PORT(21);
 const std::string FTPClient::END_LINE("\r\n");
 
+/** ctr **/
 FTPClient::FTPClient() {
     controlSocket = NULL;
 }
 
-FTPClient::FTPClient(std::string hostname, int port) :
-    hostname(hostname)
-{
-    controlSocket = new Socket(hostname.c_str(), port);
-}
-
+/** DTR - closes open connections */
 FTPClient::~FTPClient()
 {
     if (isOpen()) {
@@ -42,14 +48,39 @@ bool FTPClient::open(std::string hostname, int port) {
     return true;
 }
 
+/**
+ * Read from the underlying socket into a given output stream.
+ *
+ * @param output - the stream to write read data to.
+ *
+ * @see Socket#readInto
+ */
 void FTPClient::readInto(std::ostream &output) {
     controlSocket->readInto(output);
 }
 
+/**
+ * Write to the underlying socket from a given input stream.
+ *
+ * @param input - the stream to read from when writing to the socket.
+ *
+ * @see Socket#writeFrom
+ */
 void FTPClient::writeFrom(std::istream &input) {
     controlSocket->writeFrom(input);
 }
 
+/**
+ * Establishes a new passive connection with the current ftp server.
+ *
+ * Request an address and port to establish a connection on, then establishes
+ * said connection.
+ *
+ * @param output - where to write results to.
+ *
+ * @return NULL if an error occured and/or the connection could not be established
+ *         otherwise, returns a new tcp socket. Close socket when done.
+ */
 Socket* FTPClient::openPassive(std::ostream &output) {
     std::stringstream responseStream;
     if (!writeCmd("PASV" + END_LINE, responseStream)) {
@@ -95,6 +126,12 @@ const std::string FTPClient::getHostname(void) const {
     return hostname;
 }
 
+/**
+ * Generic handler for sending arbitrary ftp commands to the current ftp server.
+ *
+ * Handles errors: currently handles code 421. This should be expanded in future
+ * implementations.
+ */
 bool FTPClient::writeCmd(const std::string &cmd, std::ostream &output) {
     if (!isOpen()) {
         return false;
@@ -116,6 +153,7 @@ bool FTPClient::writeCmd(const std::string &cmd, std::ostream &output) {
     return true;
 }
 
+/** Print working directory to some output source, like a console. */
 bool FTPClient::pwd(std::ostream &out) {
     return writeCmd("PWD" + END_LINE, out);
 }

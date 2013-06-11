@@ -1,3 +1,12 @@
+/**
+ * @file main.cpp
+ * @brief Main
+ *
+ * @author Derek McLean, Mitch Carlson
+ *
+ * @date 11-06-2013
+ */
+
 // Library
 #include <iostream>
 #include <map>
@@ -20,10 +29,6 @@
 #include <sys/time.h>
 #include <fcntl.h>
 #include <unistd.h>
-
-// Declarations
-
-// Definitions
 
 class OpenCmd : public Command {
     public:
@@ -101,6 +106,9 @@ class PWDCmd : public Command {
         }
 };
 
+/**
+ * Close current connection, if any to the ftp server.
+ */
 class CloseCmd : public Command {
     public:
         Command::Status execute(Context &context) {
@@ -114,6 +122,9 @@ class CloseCmd : public Command {
         }
 };
 
+/**
+ * Closes current connection to the ftp server and exits the running program.
+ */
 class QuitCmd : public CloseCmd {
     public:
         Command::Status execute(Context &context) {
@@ -124,6 +135,9 @@ class QuitCmd : public CloseCmd {
         }
 };
 
+/**
+ * Create a new directory on the ftp server.
+ */
 class MkdirCmd : public Command {
     public:
         Command::Status execute(Context &context) {
@@ -140,6 +154,14 @@ class MkdirCmd : public Command {
         }
 };
 
+/**
+ * Rename a file on the ftp server.
+ *
+ * Just changes the name, not the contents; so, the file does not need to be
+ * downloaded.
+ *
+ * TODO: handle status codes returned between rename from and rename to.
+ */
 class MoveCmd : public Command {
     public:
         Command::Status execute(Context &context) {
@@ -158,6 +180,11 @@ class MoveCmd : public Command {
         }
 };
 
+/**
+ * Change the current working directory in the ftp server.
+ *
+ * This updates the current working directory in the locale console prompt.
+ */
 class CdCmd : public Command {
 public:
     Command::Status execute(Context &context) {
@@ -368,6 +395,14 @@ public:
     }
 };
 
+/**
+ * Prints help text.
+ *
+ * Currently prints all available commands and their usage.
+ *
+ * TODO: print server help text.
+ * TODO: commands register help text with interpreter.
+ */
 class Help : public Command {
     public:
         Command::Status execute(Context &context) {
@@ -414,6 +449,7 @@ int main(int argc, char *argv[]) {
     std::auto_ptr<Command> help(new Help());
     std::auto_ptr<Command> move(new MoveCmd());
 
+    // Map of commands to console text invocations.
     std::map<std::string,Command*> commands;
     commands["open"] = open.get();
     commands["quit"] = quit.get();
