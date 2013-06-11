@@ -1,5 +1,9 @@
 open ftp.tripod.com 21
 css432
 UWB0th3ll
+ls
+put test.txt test.txt
+get mytest.txt
+get testfile.txt
 get hamlet.txt
 quit
