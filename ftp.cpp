@@ -34,8 +34,11 @@ class OpenCmd : public Command {
             return open(hostname, port, context);
         }
 
-        Command::Status open(std::string hostname, int port, Context &context) {
-            *context.output << "Open connection to \"" << hostname << ":" << port << "\"" << std::endl;
+        Command::Status open(std::string hostname,
+                                        int port,
+                                Context &context) {
+            *context.output << "Open connection to \"" << hostname << ":"
+                << port << "\"" << std::endl;
             context.ftp.open(hostname, port);
             context.ftp.readInto(*context.output);
 
@@ -54,22 +57,34 @@ class OpenCmd : public Command {
             return OK;
         }
 
+        /** Authorization
+         *
+         * Prompts user for username and password. Then sends to ftp server
+         * for verification.
+         *
+         * @param context - Input/Output and ftp command socket object
+         */
         Command::Status authorize(Context &context) {
             struct passwd *pass;
             pass = getpwuid(getuid());
             std::string netid(pass->pw_name);
             std::string input;
 
+            /* Prompt for Username */
             *context.output << "Name ("
                             << context.ftp.getHostname()
                             << ":" << netid << "): ";
             *context.input >> input;
-            if (!context.ftp.writeCmd("USER " + input + FTPClient::END_LINE, *context.output)) {
+            if (!context.ftp.writeCmd("USER " + input + FTPClient::END_LINE,
+                *context.output)) {
                 return ERROR;
             }
+
+            /* Promt for Password */
             std::cout << "Password: ";
             *context.input >> input;
-            if (!context.ftp.writeCmd("PASS " + input + FTPClient::END_LINE, *context.output)) {
+            if (!context.ftp.writeCmd("PASS " + input + FTPClient::END_LINE,
+                *context.output)) {
                 return ERROR;
             }
             return OK;
@@ -117,7 +132,8 @@ class MkdirCmd : public Command {
             }
             std::string dir;
             *context.input >> dir;
-            if (!context.ftp.writeCmd("MKD " + dir + FTPClient::END_LINE, *context.output)) {
+            if (!context.ftp.writeCmd("MKD " + dir + FTPClient::END_LINE,
+                *context.output)) {
                 return ERROR;
             }
             return OK;
@@ -147,7 +163,8 @@ public:
     Command::Status execute(Context &context) {
         std::string directory;
         *context.input >> directory;
-        if (!context.ftp.writeCmd("CWD " + directory + FTPClient::END_LINE, *context.output)) {
+        if (!context.ftp.writeCmd("CWD " + directory + FTPClient::END_LINE,
+            *context.output)) {
             return ERROR;
         }
 
@@ -164,25 +181,37 @@ public:
 
 class LsCmd : public Command {
 public:
+    /**
+     * List all files and folders in current directory
+     *
+     * @param context - General input/output and ftp command socket object
+     */
     Command::Status execute(Context &context) {
-        Socket *dataSocket = context.ftp.openPassive(*context.output);  // FTP server PASV command
+        Socket *dataSocket = context.ftp.openPassive(*context.output); // PASV
+
         if (dataSocket == NULL) {
-            *context.output << "Could not establish data connection." << std::endl;
+            *context.output << "Could not establish data connection." <<
+                std::endl;
             return ERROR;
         }
+
+        /* Fork */
         pid_t pid;
-        if((pid = fork()) == -1) {
+        if((pid = fork()) == -1) {              // fork and check for error
             perror("fork error");
             exit(EXIT_FAILURE);
         }
+
         /* Block on read() */
         else if (pid == 0) {                    // child process
             dataSocket->readInto(*context.output);
             exit(EXIT_SUCCESS);
         }
+
         /* Send directory list to data port */
         else {                                  // parent process
-            if (!context.ftp.writeCmd("LIST" + FTPClient::END_LINE, *context.output)) {
+            if (!context.ftp.writeCmd("LIST" + FTPClient::END_LINE,
+                *context.output)) {
                 return ERROR;
             }
         }
@@ -194,53 +223,69 @@ public:
 
 class GetCmd : public Command {
 public:
+    /**
+     * Get file from ftp server
+     *
+     * @param context - prompts user for input, takes file name of file to get
+     */
     Command::Status execute(Context &context) {
-        struct timeval startTime,endTime;
+        struct timeval startTime,endTime;    // to record time to retrieve file
         std::string fileName;
         *context.input >> fileName;
+
+        // permission flags = read user | write user | read group | read other
         mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-
+                                // write only | create
         if(open( fileName.c_str(), O_WRONLY | O_CREAT, mode )) {
-            Socket *dataSocket = context.ftp.openPassive(*context.output);  // send PASV command
 
-            if (dataSocket != NULL) {
-
-                pid_t pid;
-                if((pid = fork()) == -1) {
-                    perror("fork error");
-                    exit(EXIT_FAILURE);
-                }
-                /* Block on read() */
-                else if (pid == 0) {                        // child process
-                    std::fstream file;
-                    file.open(fileName.c_str(), std::fstream::in |
-                        std::fstream::out);
-                    dataSocket->readInto(file);
-                    file.close();
-                    exit(EXIT_SUCCESS);
-                }
-                /*  */
-                else {                                      // parent process
-                    if (!context.ftp.writeCmd("TYPE I" + FTPClient::END_LINE, *context.output)) {
-                        return ERROR;
-                    }
-                    gettimeofday(&startTime,NULL);
-                    context.ftp.writeCmd("RETR " + fileName +
-                        FTPClient::END_LINE, *context.output);
-                    //context.ftp.readInto(*context.output, *context.output);  // get reply
-                    gettimeofday(&endTime,NULL);
-                }
-                delete dataSocket;
-                dataSocket = NULL;
-                double dt = ((double)(endTime.tv_sec - startTime.tv_sec) +
-                                    (double)(endTime.tv_usec - startTime.tv_usec)/1000000);
-                *context.output << "Received in " << dt <<
-                    " seconds" << std::endl;
-                return OK;
-            } else {
-                *context.output << "Could not establish data connection." << std::endl;
+            /* Open dedicated data socket */
+            Socket *dataSocket = context.ftp.openPassive(*context.output);
+            if (dataSocket == NULL){            // error check
+                *context.output << "Could not establish data connection." <<
+                    std::endl;
                 return ERROR;
             }
+            /* Fork process */
+            pid_t pid;
+            if((pid = fork()) == -1) {          // fork
+                perror("fork error");
+                exit(EXIT_FAILURE);
+            }
+            /* Block on read() */
+            else if (pid == 0) {                // child process
+                std::fstream file;              // create file from in-stream
+                file.open(fileName.c_str(), std::fstream::in |
+                    std::fstream::out);
+                dataSocket->readInto(file);
+                dataSocket->shutdown();
+                file.close();
+                exit(EXIT_SUCCESS);
+            }
+
+            /* Retrieve file from server */
+            else {                                      // parent process
+                if (!context.ftp.writeCmd("TYPE I" + FTPClient::END_LINE,
+                    *context.output)) {                 // binary file transfer
+                    return ERROR;
+                }
+                gettimeofday(&startTime,NULL);          // start timer
+                context.ftp.writeCmd("RETR " + fileName +
+                    FTPClient::END_LINE, *context.output);
+                int status;
+                waitpid(pid,&status,0);                 // wait for child
+                gettimeofday(&endTime,NULL);            // end timer
+                context.ftp.readInto(*context.output);  // get reply
+            }
+
+            delete dataSocket;
+            dataSocket = NULL;
+
+            /* Calculate time to get file */
+            double dt = ((double)(endTime.tv_sec - startTime.tv_sec) +
+                (double)(endTime.tv_usec - startTime.tv_usec)/1000000);
+            *context.output << "Received in " << dt <<
+                " seconds" << std::endl;
+            return OK;
         } else {
             *context.output << "File error" << std::endl;
             return ERROR;
@@ -250,64 +295,76 @@ public:
 
 class PutCmd : public Command {
 public:
+    /**
+     * Puts a file on the server
+     *
+     * @param context - prompts user for input, takes file name of a file to
+     * put on the server and name it should be stored as.
+     */
     Command::Status execute(Context &context) {
         std::string localFile;
         std::string remoteFile;
+
+        /* Check for user input on command line */
         char c = context.input->peek();
-        if(c == '\n') {
+        if(c == '\n') {                   // no command line input, prompt user
             *context.output << "(local-file) ";
             *context.input >> localFile;
             *context.output << "(remote-file) ";
             *context.input >> remoteFile;
-        } else {
+        } else {                          // get input from command line
             *context.input >> localFile;
             *context.input >> remoteFile;
         }
-        // mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 
-        int dirfd = open( remoteFile.c_str(), O_DIRECTORY | O_RDONLY);
+        // permission flags = read user | write user | read group | read other
+        mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+        int dirfd = open( remoteFile.c_str(), O_DIRECTORY | O_RDONLY, mode);
         fchdir( dirfd );
 
-        Socket *dataSocket = context.ftp.openPassive(*context.output);  // send PASV command
-
-        if (dataSocket != NULL) {
-
-            pid_t pid;
-            if((pid = fork()) == -1) {
-                perror("fork error");
-                exit(EXIT_FAILURE);
-            }
-            /* Block on read() */
-            else if (pid == 0) {                        // child process
-                std::fstream file;
-                file.open(localFile.c_str(), std::fstream::in |
-                    std::fstream::out);
-                dataSocket->writeFrom(file);
-                dataSocket->shutdown();
-                file.close();
-                exit(EXIT_SUCCESS);
-            }
-            /*  */
-            else {                                      // parent process
-                if (!context.ftp.writeCmd("TYPE I" + FTPClient::END_LINE, *context.output)) {
-                    return ERROR;
-                }
-                if (!context.ftp.writeCmd("STOR " + remoteFile +
-                    FTPClient::END_LINE, *context.output)) {
-                    return ERROR;
-                }
-                int status = 0;
-                waitpid(pid,&status,0);
-                context.ftp.readInto(*context.output);
-            }
-            delete dataSocket;
-            dataSocket = NULL;
-            return OK;
-
-        } else {
-            *context.output << "Could not establish data connection." << std::endl;
+        /* Open dedicated data socket */
+        Socket *dataSocket = context.ftp.openPassive(*context.output);
+        if (dataSocket == NULL) {
+            *context.output << "Could not establish data connection." <<
+                std::endl;
             return ERROR;
         }
+
+        /* Fork process */
+        pid_t pid;
+        if((pid = fork()) == -1) {       // verify fork
+            perror("fork error");
+            exit(EXIT_FAILURE);
+        }
+
+        /* Block on read() */
+        else if (pid == 0) {             // child process
+            std::fstream file;           // open a stream from a file
+            file.open(localFile.c_str(), std::fstream::in |
+                std::fstream::out);
+            dataSocket->writeFrom(file); // write file to server from data sock
+            dataSocket->shutdown();      // notify server that file is done
+            file.close();
+            exit(EXIT_SUCCESS);
+        }
+
+        /* Tell the ftp server to store the file */
+        else {                                      // parent process
+            if (!context.ftp.writeCmd("TYPE I" + FTPClient::END_LINE,
+                *context.output)) {
+                return ERROR;
+            }
+            if (!context.ftp.writeCmd("STOR " + remoteFile +
+                FTPClient::END_LINE, *context.output)) {
+                return ERROR;
+            }
+            int status = 0;
+            waitpid(pid,&status,0);
+            context.ftp.readInto(*context.output);
+        }
+        delete dataSocket;
+        dataSocket = NULL;
+        return OK;
     }
 };
 
@@ -315,14 +372,20 @@ class Help : public Command {
     public:
         Command::Status execute(Context &context) {
             *context.output << "Commands:" << std::endl
-                            << "open <host> <port> - open new ftp connection" << std::endl
+                            << "open <host> <port> - open new ftp connection"
+                            << std::endl
                             << "pwd - print working directory" << std::endl
-                            << "ls - list all files in current directory" << std::endl
-                            << "cd <directory> - change current working directory to given directory" << std::endl
-                            << "mkdir <directory> - create new directory within current directory" << std::endl
+                            << "ls - list all files in current directory"
+                            << std::endl
+                            << "cd <directory> - change current working "
+                            << "directory to given directory" << std::endl
+                            << "mkdir <directory> - create new directory "
+                            << "within current directory" << std::endl
                             << "move <origin> <dest> - rename a file" << std::endl
-                            << "get <filename> - download remote file" << std::endl
-                            << "put <filename> - upload local file" << std::endl;
+                            << "get <filename> - download remote file"
+                            << std::endl
+                            << "put <filename> - upload local file"
+                            << std::endl;
             return OK;
         }
 };
@@ -372,21 +435,24 @@ int main(int argc, char *argv[]) {
     std::string shellName = "ftp";
     std::string commandStr;
     while (1) {
-        std::cout << shellName << ":" << context.workingDirectory << "> " << std::flush;
+        std::cout << shellName << ":" << context.workingDirectory << "> "
+            << std::flush;
         std::cin >> commandStr;
 
 
-        std::map<std::string,Command*>::iterator itCmd = commands.find(commandStr);
+        std::map<std::string,Command*>::iterator itCmd =
+            commands.find(commandStr);
         if (itCmd == commands.end()) {
-            std::cerr << "Command \"" << commandStr << "\" Does Not Exist!" << std::endl;
+            std::cerr << "Command \"" << commandStr << "\" Does Not Exist!"
+                << std::endl;
         } else {
             Command::Status retCode = itCmd->second->execute(context);
             switch (retCode) {
                 case Command::ERROR: std::cout << "ERROR!" << std::endl; break;
-                case Command::EXIT: std::cout << "exiting..." << std::endl; return 0;
+                case Command::EXIT: std::cout << "exiting..." << std::endl;
+                    return 0;
                 default: break;
             }
         }
     }
-
 }
