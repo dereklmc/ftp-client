@@ -320,6 +320,7 @@ class Help : public Command {
                             << "ls - list all files in current directory" << std::endl
                             << "cd <directory> - change current working directory to given directory" << std::endl
                             << "mkdir <directory> - create new directory within current directory" << std::endl
+                            << "move <origin> <dest> - rename a file" << std::endl
                             << "get <filename> - download remote file" << std::endl
                             << "put <filename> - upload local file" << std::endl;
             return OK;
