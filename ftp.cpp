@@ -214,8 +214,8 @@ public:
                 }
                 delete dataSocket;
                 dataSocket = NULL;
-                float dt = ((float)(endTime.tv_sec - startTime.tv_sec) +
-                                    (float)(endTime.tv_usec - startTime.tv_usec)/100000.0);
+                double dt = ((double)(endTime.tv_sec - startTime.tv_sec) +
+                                    (double)(endTime.tv_usec - startTime.tv_usec)/1000000);
                 *context.output << "Received in " << dt <<
                     " seconds" << std::endl;
                 return OK;
